@@ -4,6 +4,7 @@ require 'json'
 require 'async'
 require 'async/http/endpoint'
 require 'async/websocket/client'
+require_relative 'guild.rb'
 
 class DiscordApi
   attr_accessor(:base_url, :authorization_header, :application_id, :interaction_created, :interaction)
