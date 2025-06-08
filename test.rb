@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 require_relative('main.rb')
 require_relative('env.rb')
+if defined?(APPLICATION_ID) == false
+  APPLICATION_ID = nil
+end
 discordapi = DiscordApi.new(TOKEN_TYPE, TOKEN, APPLICATION_ID)
 discordapi.create_global_application_command('test')
 discordapi.create_global_application_command('test2')
