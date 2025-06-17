@@ -5,6 +5,7 @@ require 'async'
 require 'async/http/endpoint'
 require 'async/websocket/client'
 require_relative 'guild.rb'
+require_relative 'logger.rb'
 
 class DiscordApi
   attr_accessor(:base_url, :authorization_header, :application_id, :interaction_created, :interaction)
@@ -21,6 +22,23 @@ class DiscordApi
     end
     @interaction_created = false
     @interaction = {}
+  end
+
+  def self.handle_query_strings(query_string_hash)
+    query_string_array = []
+    query_string_hash.each do |key, value|
+      if value == nil
+        next
+      elsif query_string_array.empty?
+        query_string_array << "?#{key.to_s}=#{value}"
+      else
+        query_string_array << "&#{key.to_s}=#{value}"
+      end
+    end
+    if query_string_array.empty?
+      query_string_array << ""
+    end
+    query_string_array.join
   end
 
   def self.handle_snowflake(snowflake)
@@ -189,23 +207,23 @@ class DiscordApi
 
         while message = connection.read
           message = JSON.parse(message, symbolize_names: true)
-          puts message
+          Logger.debug(message)
 
           case message
           in {op: 10}
-            puts "Received Hello"
+            Logger.info("Received Hello")
             @heartbeat_interval = message[:d][:heartbeat_interval]
           in {op:  1}
-            puts "Received Heartbeat Request"
+            Logger.info("Received Heartbeat Request")
             connection.write JSON.generate({op: 1, d: nil})
             connection.flush
           in {op: 11}
-            puts "Received Heartbeat ACK"
+            Logger.info("Received Heartbeat ACK")
           in {op: 0, t: 'INTERACTION_CREATE'}
-            puts "An interaction was created"
+            Logger.info("An interaction was created")
             block.call(message)
           in {op: 0}
-            puts "An event was dispatched"
+            Logger.info("An event was dispatched")
           end
         end
       end

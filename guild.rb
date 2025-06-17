@@ -3,7 +3,10 @@ class DiscordApi
   def create_guild(name, region = nil, icon = nil, verification_level = nil, default_message_notifications = nil, explicit_content_filter = nil, roles = nil, channels = nil, afk_channel_id = nil, afk_timeout = nil, system_channel_id = nil, system_channel_flags = nil)
     output = {}
     output[:name] = name
-    output[:region] = region if region != nil
+    if region != nil
+      Logger.warn("The \"region\" parameter has been deprecated and should not be used!")
+      output[:region] = region
+    end
     output[:icon] = icon if icon != nil
     output[:verification_level] = verification_level if verification_level != nil
     output[:default_message_notifications] = default_message_notifications if default_message_notifications != nil
@@ -39,7 +42,10 @@ class DiscordApi
   def modify_guild(guild_id, name = nil, region = nil, verification_level = nil, default_message_notifications = nil, explicit_content_filter = nil, afk_channel_id = nil, afk_timeout = nil, icon = nil, owner_id = nil, splash = nil, discovery_splash = nil, banner = nil, system_channel_id = nil, system_channel_flags = nil, rules_channel_id = nil, public_updates_channel_id = nil, preferred_locale = nil, features = nil, description = nil, premium_progress_bar_enabled = nil, safety_alerts_channel_id = nil)
     output = {}
     output[:name] = name if name != nil
-    output[:region] = region if region != nil
+    if region != nil
+      Logger.warn("The \"region\" parameter has been deprecated and should not be used!")
+      output[:region] = region
+    end
     output[:verification_level] = verification_level if verification_level != nil
     output[:default_message_notifications] = default_message_notifications if default_message_notifications != nil
     output[:explicit_content_filter] = explicit_content_filter if explicit_content_filter != nil
@@ -103,15 +109,112 @@ class DiscordApi
     Net::HTTP.post(url, data, headers)
   end
 
+  def modify_guild_channel_positions(guild_id, channel_id, position = nil, lock_permissions = nil, parent_id = nil)
+    output = {}
+    output[:id] = channel_id
+    output[:position] = position if position != nil
+    output[:lock_permissions] = lock_permissions if lock_permissions != nil
+    output[:parent_id] = parent_id if parent_id != nil
+    url = URI("#{@base_url}/guilds/#{guild_id}/channels")
+    data = JSON.generate(output)
+    headers = {'Authorization': @authorization_header, 'Content-Type': 'application/json'}
+    Net::HTTP.patch(url, headers, data)
+  end
+
+  def list_active_guild_threads(guild_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/threads/active")
+    headers = {'Authorization': @authorization_header}
+    Net::HTTP.get(url, headers)
+  end
+
   def get_guild_member(guild_id, user_id)
     url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
     headers = {'Authorization': @authorization_header}
     Net::HTTP.get(url, headers)
   end
 
-  def list_guild_members(guild_id)
-    url = URI("#{@base_url}/guilds/#{guild_id}/members")
+  def list_guild_members(guild_id, limit = nil, after = nil)
+    query_string_hash = {}
+    query_string_hash[:limit] = limit
+    query_string_hash[:after] = after
+    query_string = DiscordApi.handle_query_strings(query_string_hash)
+    url = URI("#{@base_url}/guilds/#{guild_id}/members#{query_string}")
     headers = {'Authorization': @authorization_header}
     Net::HTTP.get(url, headers)
+  end
+
+  def search_guild_members(guild_id, query, limit = nil)
+    query_string_hash = {}
+    query_string_hash[:query] = query
+    query_string_hash[:limit] = limit
+    query_string = DiscordApi.handle_query_strings(query_string_hash)
+    url = URI("#{@base_url}/guilds/#{guild_id}/members/search#{query_string}")
+    headers = {'Authorization': @authorization_header}
+    Net::HTTP.get(url, headers)
+  end
+
+  def add_guild_member(guild_id, user_id, access_token, nick = nil, roles = nil, mute = nil, deaf = nil)
+    output = {}
+    output[:access_token] = access_token
+    output[:nick] = nick if nick != nil
+    output[:roles] = roles if roles != nil
+    output[:mute] = mute if mute != nil
+    output[:deaf] = deaf if deaf != nil
+    url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
+    data = JSON.generate(output)
+    headers = {'Authorization': @authorization_header, 'Content-Type': 'application/json'}
+    Net::HTTP.put(url, data, headers)
+  end
+
+  def modify_guild_member(guild_id, user_id, nick = nil, roles = nil, mute = nil, deaf = nil, channel_id = nil, communication_disabled_until = nil, flags = nil)
+    output = {}
+    output[:nick] = nick if nick != nil
+    output[:roles] = roles if roles != nil
+    output[:mute] = mute if mute != nil
+    output[:deaf] = deaf if deaf != nil
+    output[:channel_id] = channel_id if channel_id != nil
+    output[:communication_disabled_until] = communication_disabled_until
+    output[:flags] = flags if flags != nil
+    url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
+    data = JSON.generate(output)
+    headers = {'Authorization': @authorization_header, 'Content-Type': 'application/json'}
+    Net::HTTP.patch(url, data, headers)
+  end
+
+  def modify_current_member(guild_id, nick = nil)
+    output = {}
+    output[:nick] = nick if nick != nil
+    url = URI("#{@base_url}/guilds/#{guild_id}/members/@me")
+    data = JSON.generate(output)
+    headers = {'Authorization': @authorization_header, 'Content-Type': 'application/json'}
+    Net::HTTP.patch(url, data, headers)
+  end
+
+  def modify_current_user_nick(guild_id, nick = nil)
+    Logger.warn("The \"Modify Current User Nick\" endpoint has been deprecated and should not be used!")
+    output = {}
+    output[:nick] = nick if nick != nil
+    url = URI("#{@base_url}/guilds/#{guild_id}/users/@me/nick")
+    data = JSON.generate(output)
+    headers = {'Authorization': @authorization_header, 'Content-Type': 'application/json'}
+    Net::HTTP.patch(url, data, headers)
+  end
+
+  def add_guild_member_role(guild_id, user_id, role_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}/roles/#{role_id}")
+    headers = {'Authorization': @authorization_header}
+    Net::HTTP.put(url, nil, headers)
+  end
+
+  def remove_guild_member_role(guild_id, user_id, role_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}/roles/#{role_id}")
+    headers = {'Authorization': @authorization_header}
+    Net::HTTP.delete(url, headers)
+  end
+
+  def remove_guild_member(guild_id, user_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
+    headers = {'Authorization': @authorization_header}
+    Net::HTTP.delete(url, headers)
   end
 end
