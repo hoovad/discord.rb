@@ -1,0 +1,4 @@
+Metrics:
+  Enabled: false
+AllCops:
+  NewCops: disable

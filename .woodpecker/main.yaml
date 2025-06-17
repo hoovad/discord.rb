@@ -1,0 +1,10 @@
+when:
+  - event: push
+    branch: main
+
+steps:
+  - name: lint
+    image: ruby:latest
+    commands:
+      - gem install rubocop
+      - rubocop
