@@ -11,6 +11,7 @@ discordapi.connect_gateway do |interaction|
   if interaction[:d][:data][:name] == 'test'
     Logger.debug(discordapi.respond_interaction(interaction, { "type": 4, "data": { "content": 'Hi!' } }))
   elsif interaction[:d][:data][:name] == 'test2'
-    Logger.debug(discordapi.respond_interaction(interaction, { "type": 4, "data": { "content": 'Hello World!' } }))
+    Logger.debug(discordapi.respond_interaction(interaction, { "type": 4, "data": { "content": 'Hello World!' } },
+                                                with_response: true))
   end
 end

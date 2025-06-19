@@ -13,7 +13,7 @@ require_relative 'logger'
 class DiscordApi
   attr_accessor(:base_url, :authorization_header, :application_id, :interaction_created, :interaction)
 
-  def initialize(authorization_token_type, authorization_token, application_id: nil)
+  def initialize(authorization_token_type, authorization_token, application_id = nil)
     @api_version = '10'
     @base_url = "https://discord.com/api/v#{@api_version}"
     @authorization_header = "#{authorization_token_type} #{authorization_token}"
@@ -147,8 +147,8 @@ class DiscordApi
   end
 
   def get_guild_application_commands(guild_id, with_localizations: false)
-    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands?with_localizations=
-          #{with_localizations}")
+    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands?with_localizations=" \
+          "#{with_localizations}")
     headers = { 'Authorization': @authorization_header }
     Net::HTTP.get(url, headers)
   end
@@ -248,8 +248,8 @@ class DiscordApi
   end
 
   def respond_interaction(interaction, response, with_response: false)
-    url = URI("#{@base_url}/interactions/#{interaction[:d][:id]}/#{interaction[:d][:token]}/callback?with_response=
-    #{with_response}")
+    url = URI("#{@base_url}/interactions/#{interaction[:d][:id]}/#{interaction[:d][:token]}/callback?with_response=" \
+    "#{with_response}")
     data = JSON.generate(response)
     headers = { 'content-type': 'application/json' }
     Net::HTTP.post(url, data, headers)
