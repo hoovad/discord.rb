@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# TODO: Implement X-Audit-Log-Reason header support for all endpoints that support it.
+
 # DiscordApi
 # The class that contains everything that interacts with the Discord API.
 class DiscordApi
@@ -102,7 +104,7 @@ class DiscordApi
     output[:name] = name
     output[:type] = type unless type.nil?
     output[:topic] = topic unless topic.nil?
-    output[:bitrate] = bitrate unless user_limit.nil?
+    output[:bitrate] = bitrate unless bitrate.nil?
     output[:user_limit] = user_limit unless user_limit.nil?
     output[:rate_limit_per_user] = rate_limit_per_user unless rate_limit_per_user.nil?
     output[:position] = position unless position.nil?
@@ -234,5 +236,360 @@ class DiscordApi
     url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
     headers = { 'Authorization': @authorization_header }
     Net::HTTP.delete(url, headers)
+  end
+
+  def get_guild_bans(guild_id, limit = nil, before = nil, after = nil)
+    query_string_hash = {}
+    query_string_hash[:limit] = limit unless limit.nil?
+    query_string_hash[:before] = before unless before.nil?
+    query_string_hash[:after] = after unless after.nil?
+    query_string = DiscordApi.handle_query_strings(query_string_hash)
+    url = URI("#{@base_url}/guilds/#{guild_id}/bans#{query_string}")
+    headers = { 'Authorization': @authorization_header }
+    Net::HTTP.get(url, headers)
+  end
+
+  def get_guild_ban(guild_id, user_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/bans/#{user_id}")
+    headers = { 'Authorization': @authorization_header }
+    Net::HTTP.get(url, headers)
+  end
+
+  def create_guild_ban(guild_id, user_id, delete_message_days = nil, delete_message_seconds = nil)
+    output = {}
+    unless delete_message_days.nil?
+      Logger.warn('The "delete_message_days" parameter has been deprecated and should not be used!')
+      output[:delete_message_days] = delete_message_days
+    end
+    output[:delete_message_seconds] = delete_message_seconds unless delete_message_seconds.nil?
+    url = URI("#{@base_url}/guilds/#{guild_id}/bans/#{user_id}")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    Net::HTTP.put(url, data, headers)
+  end
+
+  def remove_guild_ban(guild_id, user_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/bans/#{user_id}")
+    headers = { 'Authorization': @authorization_header }
+    Net::HTTP.delete(url, headers)
+  end
+
+  def bulk_guild_ban(guild_id, user_ids, delete_message_seconds = nil)
+    output = {}
+    output[:user_ids] = user_ids unless user_ids.nil?
+    output[:delete_message_seconds] = delete_message_seconds unless delete_message_seconds.nil?
+    url = URI("#{@base_url}/guilds/#{guild_id}/bulk-ban")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    Net::HTTP.post(url, data, headers)
+  end
+
+  def get_guild_roles(guild_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/roles")
+    headers = { 'Authorization': @authorization_header }
+    Net::HTTP.get(url, headers)
+  end
+
+  def get_guild_role(guild_id, role_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/roles/#{role_id}")
+    headers = { 'Authorization': @authorization_header }
+    Net::HTTP.get(url, headers)
+  end
+
+  def create_guild_role(guild_id, name = nil, permissions = nil, color = nil, hoist = nil, icon = nil,
+                        unicode_emoji = nil, mentionable = nil)
+    output = {}
+    output[:name] = name unless name.nil?
+    output[:permissions] = permissions unless permissions.nil?
+    output[:color] = color unless color.nil?
+    output[:hoist] = hoist unless hoist.nil?
+    output[:icon] = icon unless icon.nil?
+    output[:unicode_emoji] = unicode_emoji unless unicode_emoji.nil?
+    output[:mentionable] = mentionable unless mentionable.nil?
+    url = URI("#{@base_url}/guilds/#{guild_id}/roles")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    Net::HTTP.post(url, data, headers)
+  end
+
+  def modify_guild_role_positions(guild_id, id, position = nil)
+    output = {}
+    output[:id] = id
+    output[:position] = position unless position.nil?
+    url = URI("#{@base_url}/guilds/#{guild_id}/roles")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    Net::HTTP.patch(url, data, headers)
+  end
+
+  def modify_guild_role(guild_id, role_id, name = nil, permissions = nil, color = nil, hoist = nil, icon = nil,
+                        unicode_emoji = nil, mentionable = nil)
+    output = {}
+    output[:name] = name unless name.nil?
+    output[:permissions] = permissions unless permissions.nil?
+    output[:color] = color unless color.nil?
+    output[:hoist] = hoist unless hoist.nil?
+    output[:icon] = icon unless icon.nil?
+    output[:unicode_emoji] = unicode_emoji unless unicode_emoji.nil?
+    output[:mentionable] = mentionable unless mentionable.nil?
+    url = URI("#{@base_url}/guilds/#{guild_id}/roles/#{role_id}")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    Net::HTTP.patch(url, data, headers)
+  end
+
+  # TODO: Add success checks for all endpoints, not just the ones after this one
+  def modify_guild_mfa_level(guild_id, level)
+    output = {}
+    output[:level] = level unless level.nil?
+    url = URI("#{@base_url}/guilds/#{guild_id}/mfa")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    response = Net::HTTP.post(url, data, headers)
+    return unless response != JSON.generate({ level: level }) # might not be the correct way to check for success
+
+    Logger.error("Failed to modify guild MFA level. Response: #{response.body}")
+    response
+  end
+
+  def delete_guild_role(guild_id, role_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/roles/#{role_id}")
+    headers = { 'Authorization': @authorization_header }
+    response = Net::HTTP.delete(url, headers)
+    return response unless response.code != '204'
+
+    Logger.error("Failed to delete guild role. Response: #{response.body}")
+    response
+  end
+
+  def get_guild_prune_count(guild_id, days = nil, include_roles = nil)
+    query_string_hash = {}
+    query_string_hash[:days] = days unless days.nil?
+    query_string_hash[:include_roles] = include_roles unless include_roles.nil?
+    query_string = DiscordApi.handle_query_strings(query_string_hash)
+    url = URI("#{@base_url}/guilds/#{guild_id}/prune#{query_string}")
+    headers = { 'Authorization': @authorization_header }
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Failed to get guild prune count. Response: #{response.body}")
+    response
+  end
+
+  def begin_guild_prune(guild_id, days = 7, include_roles = 'none', reason = nil, audit_reason = nil,
+                        compute_prune_count: true)
+    output = {}
+    output[:days] = days unless days.nil?
+    output[:compute_prune_count] = compute_prune_count unless compute_prune_count.nil?
+    output[:include_roles] = include_roles unless include_roles.nil?
+    unless reason.nil?
+      Logger.warn('The "reason" parameter has been deprecated and should not be used!')
+      output[:reason] = reason
+    end
+    url = URI("#{@base_url}/guilds/#{guild_id}/prune")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.post(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Failed to begin guild prune. Response: #{response.body}")
+    response
+  end
+
+  def get_guild_voice_regions(guild_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/regions")
+    headers = { 'Authorization': @authorization_header }
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Failed to get guild voice regions. Response: #{response.body}")
+    response
+  end
+
+  def get_guild_invites(guild_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/invites")
+    headers = { 'Authorization': @authorization_header }
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Failed to get guild invites. Response: #{response.body}")
+    response
+  end
+
+  def get_guild_integrations(guild_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/integrations")
+    headers = { 'Authorization': @authorization_header }
+    response = Net::HTTP.get(url, headers)
+    unless response.code != '200'
+      if JSON.parse(response.body).length == 50
+        Logger.warn('The endpoint returned 50 integrations, which means there could be more integrations not shown.')
+      end
+      response
+    end
+
+    Logger.error("Failed to get guild integrations. Response: #{response.body}")
+    response
+  end
+
+  def delete_guild_integration(guild_id, integration_id, audit_reason = nil)
+    url = URI("#{@base_url}/guilds/#{guild_id}/integrations/#{integration_id}")
+    headers = { 'Authorization': @authorization_header }
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.delete(url, headers)
+    return response unless response.code != '204'
+
+    Logger.error("Failed to delete guild integration. Response: #{response.body}")
+    response
+  end
+
+  def get_guild_widget_settings(guild_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/widget")
+    headers = { 'Authorization': @authorization_header }
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Failed to get guild widget settings. Response: #{response.body}")
+    response
+  end
+
+  def modify_guild_widget(guild_id, enabled, channel_id = nil, audit_reason = nil)
+    output = {}
+    output[:enabled] = enabled
+    output[:channel_id] = channel_id unless channel_id.nil?
+    url = URI("#{@base_url}/guilds/#{guild_id}/widget")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.patch(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Failed to modify guild widget. Response: #{response.body}")
+    response
+  end
+
+  def get_guild_wiget(guild_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/widget.json")
+    headers = { 'Authorization': @authorization_header }
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Failed to get guild widget. Response: #{response.body}")
+    response
+  end
+
+  def get_guild_vanity_url(guild_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/vanity-url")
+    headers = { 'Authorization': @authorization_header }
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error('Failed to get guild vanity URL, perhaps you do not have the MANAGE_GUILD permission. ' \
+                 "If you only want to get the Vanity URL, use the get_guild endpoint. Response: #{response.body}")
+    response
+  end
+
+  def get_guild_widget_image(guild_id, shield: false, banner1: false, banner2: false, banner3: false, banner4: false)
+    options = { shield: shield, banner1: banner1, banner2: banner2, banner3: banner3, banner4: banner4 }
+    true_keys = options.select { |_k, v| v }.keys
+
+    if true_keys.size > 1
+      Logger.error('You can only specify one of shield, banner1, banner2, banner3, or banner4 as true.')
+      nil
+    elsif true_keys.size == 1
+      style = true_keys.first.to_s
+    end
+
+    query_string_hash = {}
+    query_string_hash[:style] = style unless style.nil?
+    query_string = DiscordApi.handle_query_strings(query_string_hash)
+
+    url = URI("#{@base_url}/guilds/#{guild_id}/widget.png#{query_string}")
+    response = Net::HTTP.get(url)
+    return unless response.code != '200'
+
+    Logger.error("Failed to get guild widget image. Response: #{response.body}")
+    response
+  end
+
+  def get_guild_welcome_screen(guild_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/welcome-screen")
+    headers = { 'Authorization': @authorization_header }
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Failed to get guild welcome screen. Response: #{response.body}")
+    response
+  end
+
+  def modify_guild_welcome_screen(guild_id, enabled = nil, welcome_channels = nil, description = nil,
+                                  audit_reason = nil)
+    output = {}
+    output[:enabled] = enabled unless enabled.nil?
+    output[:welcome_channels] = welcome_channels unless welcome_channels.nil?
+    output[:description] = description unless description.nil?
+    url = URI("#{@base_url}/guilds/#{guild_id}/welcome-screen")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.patch(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Failed to modify guild welcome screen. Response: #{response.body}")
+    response
+  end
+
+  def get_guild_onboarding(guild_id)
+    url = URI("#{@base_url}/guilds/#{guild_id}/onboarding")
+    headers = { 'Authorization': @authorization_header }
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Failed to get guild onboarding. Response: #{response.body}")
+    response
+  end
+
+  def modify_guild_onboarding(guild_id, prompts, default_channel_ids, enabled, mode, audit_reason = nil)
+    output = {}
+    output[:prompts] = prompts
+    output[:default_channel_ids] = default_channel_ids
+    output[:enabled] = enabled
+    output[:mode] = mode
+    url = URI("#{@base_url}/guilds/#{guild_id}/onboarding")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.put(url, data, headers)
+    # the .code function could produce 'NoMethodError' but we have not tested it yet
+    return response unless response.code != '200'
+
+    Logger.error("Failed to modify guild onboarding. Response: #{response.body}")
+    response
+  end
+
+  # it is not clear in the documentation whether invites_disabled_until and dms_disabled_until are required or optional
+  # but we will assume they are optional for now
+  def modify_guild_incident_actions(guild_id, invites_disabled_until = nil, dms_disabled_until = nil)
+    output = {}
+    # if only discord wouldn't of have required to set a variable to null for some functionality
+    if invites_disabled_until == false
+      output[:invites_disabled_until] = nil
+    elsif !invites_disabled_until.nil? && invites_disabled_until != false
+      output[:invites_disabled_until] = invites_disabled_until
+    end
+    if dms_disabled_until == false
+      output[:dms_disabled_until] = nil
+    elsif !dms_disabled_until.nil? && dms_disabled_until != false
+      output[:dms_disabled_until] = dms_disabled_until
+    end
+    url = URI("#{@base_url}/guilds/#{guild_id}/incident-actions")
+    data = JSON.generate(output)
+    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    response = Net::HTTP.put(url, data, headers)
+    # same problem with as above
+    return response unless response.code != '200'
+
+    Logger.error("Failed to modify guild incident actions. Response: #{response.body}")
+    response
   end
 end
