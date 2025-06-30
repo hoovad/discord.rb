@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# TODO: Implement X-Audit-Log-Reason header support for all endpoints that support it.
-
 # DiscordApi
 # The class that contains everything that interacts with the Discord API.
 class DiscordApi
@@ -27,7 +25,11 @@ class DiscordApi
     url = URI("#{@base_url}/guilds")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.post(url, data, headers)
+    response = Net::HTTP.post(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not create guild. Response: #{response.body}")
+    response
   end
 
   def get_guild(guild_id, with_counts = nil)
@@ -37,13 +39,21 @@ class DiscordApi
             URI("#{@base_url}/guilds/#{guild_id}")
           end
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not get guild with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def get_guild_preview(guild_id)
     url = URI("#{@base_url}/guilds/#{guild_id}/preview")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not get guild preview with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def modify_guild(guild_id, name = nil, region = nil, verification_level = nil, default_message_notifications = nil,
@@ -51,7 +61,7 @@ class DiscordApi
                    splash = nil, discovery_splash = nil, banner = nil, system_channel_id = nil,
                    system_channel_flags = nil, rules_channel_id = nil, public_updates_channel_id = nil,
                    preferred_locale = nil, features = nil, description = nil, premium_progress_bar_enabled = nil,
-                   safety_alerts_channel_id = nil)
+                   safety_alerts_channel_id = nil, audit_reason = nil)
     output = {}
     output[:name] = name unless name.nil?
     unless region.nil?
@@ -80,26 +90,39 @@ class DiscordApi
     url = URI("#{@base_url}/guilds/#{guild_id}")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.patch(url, headers, data)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.patch(url, headers, data)
+    return response unless response.code != '200'
+
+    Logger.error("Could not modify guild with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def delete_guild(guild_id)
     url = URI("#{@base_url}/guilds/#{guild_id}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.delete(url, headers)
+    response = Net::HTTP.delete(url, headers)
+    return response unless response.code != '204'
+
+    Logger.error("Could not delete guild with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def get_guild_channels(guild_id)
     url = URI("#{@base_url}/guilds/#{guild_id}/channels")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not get guild channels with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def create_guild_channel(guild_id, name, type = nil, topic = nil, bitrate = nil, user_limit = nil,
                            rate_limit_per_user = nil, position = nil, permission_overwrites = nil, parent_id = nil,
                            nsfw = nil, rtc_region = nil, video_quality_mode = nil, default_auto_archive_duration = nil,
                            default_reaction_emoji = nil, available_tags = nil, default_sort_order = nil,
-                           default_forum_layout = nil, default_thread_rate_limit_per_user = nil)
+                           default_forum_layout = nil, default_thread_rate_limit_per_user = nil, audit_reason = nil)
     output = {}
     output[:name] = name
     output[:type] = type unless type.nil?
@@ -125,7 +148,12 @@ class DiscordApi
     url = URI("#{@base_url}/guilds/#{guild_id}/channels")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.post(url, data, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.post(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not create guild channel in Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def modify_guild_channel_positions(guild_id, channel_id, position = nil, lock_permissions = nil, parent_id = nil)
@@ -137,19 +165,32 @@ class DiscordApi
     url = URI("#{@base_url}/guilds/#{guild_id}/channels")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.patch(url, headers, data)
+    response = Net::HTTP.patch(url, headers, data)
+    return response unless response.code != '204'
+
+    Logger.error("Could not modify guild channel positions with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def list_active_guild_threads(guild_id)
     url = URI("#{@base_url}/guilds/#{guild_id}/threads/active")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not list active guild threads with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def get_guild_member(guild_id, user_id)
     url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not get guild member with Guild ID #{guild_id} and User ID #{user_id}. Response:" \
+                   "#{response.body}")
+    response
   end
 
   def list_guild_members(guild_id, limit = nil, after = nil)
@@ -159,7 +200,11 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = URI("#{@base_url}/guilds/#{guild_id}/members#{query_string}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not list members with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def search_guild_members(guild_id, query, limit = nil)
@@ -169,7 +214,11 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = URI("#{@base_url}/guilds/#{guild_id}/members/search#{query_string}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not search members with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def add_guild_member(guild_id, user_id, access_token, nick = nil, roles = nil, mute = nil, deaf = nil)
@@ -182,11 +231,20 @@ class DiscordApi
     url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.put(url, data, headers)
+    response = Net::HTTP.put(url, data, headers)
+    # TODO: We should give the user the option to change the verbosity of the logging
+    if response.code == '204'
+      Logger.warn("User with ID #{user_id} is already a member of the guild with ID #{guild_id}.")
+    elsif response.code == '201'
+      Logger.info("Added user with ID #{user_id} to guild with ID #{guild_id}.")
+    else
+      Logger.error("Could not add user with ID #{user_id} to guild with ID #{guild_id}. Response: #{response.body}")
+    end
+    response
   end
 
   def modify_guild_member(guild_id, user_id, nick = nil, roles = nil, mute = nil, deaf = nil, channel_id = nil,
-                          communication_disabled_until = nil, flags = nil)
+                          communication_disabled_until = nil, flags = nil, audit_reason = nil)
     output = {}
     output[:nick] = nick unless nick.nil?
     output[:roles] = roles unless roles.nil?
@@ -198,44 +256,77 @@ class DiscordApi
     url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.patch(url, data, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.patch(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not modify guild member with Guild ID #{guild_id} and User ID #{user_id}. " \
+    "Response: #{response.body}")
+    response
   end
 
-  def modify_current_member(guild_id, nick = nil)
+  def modify_current_member(guild_id, nick = nil, audit_reason = nil)
     output = {}
     output[:nick] = nick unless nick.nil?
     url = URI("#{@base_url}/guilds/#{guild_id}/members/@me")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.patch(url, data, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.patch(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not modify current member in guild with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
-  def modify_current_user_nick(guild_id, nick = nil)
+  def modify_current_user_nick(guild_id, nick = nil, audit_reason = nil)
     Logger.warn('The "Modify Current User Nick" endpoint has been deprecated and should not be used!')
     output = {}
     output[:nick] = nick unless nick.nil?
     url = URI("#{@base_url}/guilds/#{guild_id}/users/@me/nick")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.patch(url, data, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.patch(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not modify current user nick in guild with ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
-  def add_guild_member_role(guild_id, user_id, role_id)
+  def add_guild_member_role(guild_id, user_id, role_id, audit_reason = nil)
     url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}/roles/#{role_id}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.put(url, nil, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.put(url, nil, headers)
+    return response unless response.code != '204'
+
+    Logger.error("Could not add role with ID #{role_id}, to user with ID #{user_id} in guild with ID #{guild_id}." \
+                   " Response: #{response.body}")
+    response
   end
 
-  def remove_guild_member_role(guild_id, user_id, role_id)
+  def remove_guild_member_role(guild_id, user_id, role_id, audit_reason = nil)
     url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}/roles/#{role_id}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.delete(url, headers)
+    headers['x-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.delete(url, headers)
+    return response unless response.code != '204'
+
+    Logger.error("Could not remove role with ID #{role_id}, from user with ID #{user_id}" \
+                  " in guild with ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
-  def remove_guild_member(guild_id, user_id)
+  def remove_guild_member(guild_id, user_id, audit_reason = nil)
     url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.delete(url, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.delete(url, headers)
+    return response unless response.code != '204'
+
+    Logger.error("Could not remove user with ID #{user_id} from guild with ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def get_guild_bans(guild_id, limit = nil, before = nil, after = nil)
@@ -246,16 +337,29 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = URI("#{@base_url}/guilds/#{guild_id}/bans#{query_string}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not get guild bans with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def get_guild_ban(guild_id, user_id)
     url = URI("#{@base_url}/guilds/#{guild_id}/bans/#{user_id}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    if response.code == '404'
+      Logger.warn("No ban found for user with ID #{user_id} in guild with ID #{guild_id}.")
+    else
+      Logger.error("Could not get guild ban for user with ID #{user_id} in guild with ID #{guild_id}." \
+                     " Response: #{response.body}")
+    end
+    response
   end
 
-  def create_guild_ban(guild_id, user_id, delete_message_days = nil, delete_message_seconds = nil)
+  def create_guild_ban(guild_id, user_id, delete_message_days = nil, delete_message_seconds = nil, audit_reason = nil)
     output = {}
     unless delete_message_days.nil?
       Logger.warn('The "delete_message_days" parameter has been deprecated and should not be used!')
@@ -265,39 +369,68 @@ class DiscordApi
     url = URI("#{@base_url}/guilds/#{guild_id}/bans/#{user_id}")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.put(url, data, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.put(url, data, headers)
+    return response unless response.code != '204'
+
+    Logger.error("Could not create guild ban for user with ID #{user_id} in guild with ID #{guild_id}." \
+                   " Response: #{response.body}")
+    response
   end
 
-  def remove_guild_ban(guild_id, user_id)
+  def remove_guild_ban(guild_id, user_id, audit_reason = nil)
     url = URI("#{@base_url}/guilds/#{guild_id}/bans/#{user_id}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.delete(url, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.delete(url, headers)
+    return response unless response.code != '204'
+
+    Logger.error("Could not remove guild ban for user with ID #{user_id} in guild with ID #{guild_id}" \
+                  " Response: #{response.body}")
+    response
   end
 
-  def bulk_guild_ban(guild_id, user_ids, delete_message_seconds = nil)
+  def bulk_guild_ban(guild_id, user_ids, delete_message_seconds = nil, audit_reason = nil)
     output = {}
     output[:user_ids] = user_ids unless user_ids.nil?
     output[:delete_message_seconds] = delete_message_seconds unless delete_message_seconds.nil?
     url = URI("#{@base_url}/guilds/#{guild_id}/bulk-ban")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.post(url, data, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.post(url, data, headers)
+    return response unless response.code != '200'
+
+    if response.code == '500000'
+      Logger.error("No users were banned in bulk ban in guild with ID #{guild_id}. Response: #{response.body}")
+    else
+      Logger.error("Could not bulk ban users in guild with ID #{guild_id}. Response: #{response.body}")
+    end
+    response
   end
 
   def get_guild_roles(guild_id)
     url = URI("#{@base_url}/guilds/#{guild_id}/roles")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not get guild roles with Guild ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def get_guild_role(guild_id, role_id)
     url = URI("#{@base_url}/guilds/#{guild_id}/roles/#{role_id}")
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = Net::HTTP.get(url, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not get role with ID #{role_id} in guild with ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def create_guild_role(guild_id, name = nil, permissions = nil, color = nil, hoist = nil, icon = nil,
-                        unicode_emoji = nil, mentionable = nil)
+                        unicode_emoji = nil, mentionable = nil, audit_reason = nil)
     output = {}
     output[:name] = name unless name.nil?
     output[:permissions] = permissions unless permissions.nil?
@@ -309,21 +442,31 @@ class DiscordApi
     url = URI("#{@base_url}/guilds/#{guild_id}/roles")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.post(url, data, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.post(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not create guild role in guild with ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
-  def modify_guild_role_positions(guild_id, id, position = nil)
+  def modify_guild_role_positions(guild_id, id, position = nil, audit_reason = nil)
     output = {}
     output[:id] = id
     output[:position] = position unless position.nil?
     url = URI("#{@base_url}/guilds/#{guild_id}/roles")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.patch(url, data, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.patch(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not modify guild role positions in guild with ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def modify_guild_role(guild_id, role_id, name = nil, permissions = nil, color = nil, hoist = nil, icon = nil,
-                        unicode_emoji = nil, mentionable = nil)
+                        unicode_emoji = nil, mentionable = nil, audit_reason = nil)
     output = {}
     output[:name] = name unless name.nil?
     output[:permissions] = permissions unless permissions.nil?
@@ -335,16 +478,22 @@ class DiscordApi
     url = URI("#{@base_url}/guilds/#{guild_id}/roles/#{role_id}")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.patch(url, data, headers)
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
+    response = Net::HTTP.patch(url, data, headers)
+    return response unless response.code != '200'
+
+    Logger.error("Could not modify guild role with ID #{role_id} in guild with ID #{guild_id}." \
+                 " Response: #{response.body}")
+    response
   end
 
-  # TODO: Add success checks for all endpoints, not just the ones after this one
-  def modify_guild_mfa_level(guild_id, level)
+  def modify_guild_mfa_level(guild_id, level, audit_reason = nil)
     output = {}
     output[:level] = level unless level.nil?
     url = URI("#{@base_url}/guilds/#{guild_id}/mfa")
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
     response = Net::HTTP.post(url, data, headers)
     return unless response != JSON.generate({ level: level }) # might not be the correct way to check for success
 
@@ -352,9 +501,10 @@ class DiscordApi
     response
   end
 
-  def delete_guild_role(guild_id, role_id)
+  def delete_guild_role(guild_id, role_id, audit_reason = nil)
     url = URI("#{@base_url}/guilds/#{guild_id}/roles/#{role_id}")
     headers = { 'Authorization': @authorization_header }
+    headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
     response = Net::HTTP.delete(url, headers)
     return response unless response.code != '204'
 
@@ -561,6 +711,8 @@ class DiscordApi
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
     response = Net::HTTP.put(url, data, headers)
     # the .code function could produce 'NoMethodError' but we have not tested it yet
+    # i should create my own wrapper to get the response code
+    # TODO: Create a wrapper to get the response code so we don't get NoMethodError
     return response unless response.code != '200'
 
     Logger.error("Failed to modify guild onboarding. Response: #{response.body}")
