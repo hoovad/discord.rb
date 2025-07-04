@@ -4,8 +4,7 @@ require_relative('main')
 require_relative('env')
 VERBOSITY_LEVEL = nil if defined?(VERBOSITY_LEVEL) == false
 discordapi = DiscordApi.new(TOKEN_TYPE, TOKEN, VERBOSITY_LEVEL)
-discordapi.create_global_application_command('test')
-discordapi.create_global_application_command('test2')
+discordapi.create_global_application_commands([['test'], ['test2']])
 discordapi.connect_gateway do |interaction|
   discordapi.logger.info('Responding to interaction')
   if interaction[:d][:data][:name] == 'test'

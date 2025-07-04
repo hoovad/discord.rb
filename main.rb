@@ -100,6 +100,20 @@ class DiscordApi
     Net::HTTP.post(url, data, headers)
   end
 
+  def create_guild_application_commands(application_commands_array)
+    if application_commands_array.is_a?(Array)
+      application_commands_array.each do |parameter_array|
+        if parameter_array.is_a?(Array)
+          create_guild_application_command(*parameter_array)
+        else
+          @logger.error("Invalid parameter array: #{parameter_array}. Expected an array of parameters.")
+        end
+      end
+    else
+      @logger.error("Invalid application commands array: #{application_commands_array}. Expected an array of arrays.")
+    end
+  end
+
   def create_global_application_command(name, name_localizations = nil, description = nil,
                                         description_localizations = nil, options = nil,
                                         default_member_permissions = nil, default_permission: true,
@@ -120,6 +134,20 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     Net::HTTP.post(url, data, headers)
+  end
+
+  def create_global_application_commands(application_commands_array)
+    if application_commands_array.is_a?(Array)
+      application_commands_array.each do |parameter_array|
+        if parameter_array.is_a?(Array)
+          create_global_application_command(*parameter_array)
+        else
+          @logger.error("Invalid parameter array: #{parameter_array}. Expected an array of parameters.")
+        end
+      end
+    else
+      @logger.error("Invalid application commands array: #{application_commands_array}. Expected an array of arrays.")
+    end
   end
 
   def edit_global_application_command(command_id, name = nil, name_localizations = nil, description = nil,
