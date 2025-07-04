@@ -232,7 +232,6 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     response = Net::HTTP.put(url, data, headers)
-    # TODO: We should give the user the option to change the verbosity of the logging
     if response.code == '204'
       @logger.warn("User with ID #{user_id} is already a member of the guild with ID #{guild_id}.")
     elsif response.code == '201'
