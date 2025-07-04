@@ -9,7 +9,7 @@ class DiscordApi
     output = {}
     output[:name] = name
     unless region.nil?
-      Logger.warn('The "region" parameter has been deprecated and should not be used!')
+      @logger.warn('The "region" parameter has been deprecated and should not be used!')
       output[:region] = region
     end
     output[:icon] = icon unless icon.nil?
@@ -28,7 +28,7 @@ class DiscordApi
     response = Net::HTTP.post(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not create guild. Response: #{response.body}")
+    @logger.error("Could not create guild. Response: #{response.body}")
     response
   end
 
@@ -42,7 +42,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not get guild with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get guild with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -52,7 +52,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not get guild preview with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get guild preview with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -65,7 +65,7 @@ class DiscordApi
     output = {}
     output[:name] = name unless name.nil?
     unless region.nil?
-      Logger.warn('The "region" parameter has been deprecated and should not be used!')
+      @logger.warn('The "region" parameter has been deprecated and should not be used!')
       output[:region] = region
     end
     output[:verification_level] = verification_level unless verification_level.nil?
@@ -94,7 +94,7 @@ class DiscordApi
     response = Net::HTTP.patch(url, headers, data)
     return response unless response.code != '200'
 
-    Logger.error("Could not modify guild with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not modify guild with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -104,7 +104,7 @@ class DiscordApi
     response = Net::HTTP.delete(url, headers)
     return response unless response.code != '204'
 
-    Logger.error("Could not delete guild with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not delete guild with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -114,7 +114,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not get guild channels with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get guild channels with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -152,7 +152,7 @@ class DiscordApi
     response = Net::HTTP.post(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not create guild channel in Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not create guild channel in Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -168,7 +168,7 @@ class DiscordApi
     response = Net::HTTP.patch(url, headers, data)
     return response unless response.code != '204'
 
-    Logger.error("Could not modify guild channel positions with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not modify guild channel positions with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -178,7 +178,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not list active guild threads with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not list active guild threads with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -188,7 +188,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not get guild member with Guild ID #{guild_id} and User ID #{user_id}. Response:" \
+    @logger.error("Could not get guild member with Guild ID #{guild_id} and User ID #{user_id}. Response:" \
                    "#{response.body}")
     response
   end
@@ -203,7 +203,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not list members with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not list members with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -217,7 +217,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not search members with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not search members with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -234,11 +234,11 @@ class DiscordApi
     response = Net::HTTP.put(url, data, headers)
     # TODO: We should give the user the option to change the verbosity of the logging
     if response.code == '204'
-      Logger.warn("User with ID #{user_id} is already a member of the guild with ID #{guild_id}.")
+      @logger.warn("User with ID #{user_id} is already a member of the guild with ID #{guild_id}.")
     elsif response.code == '201'
-      Logger.info("Added user with ID #{user_id} to guild with ID #{guild_id}.")
+      @logger.info("Added user with ID #{user_id} to guild with ID #{guild_id}.")
     else
-      Logger.error("Could not add user with ID #{user_id} to guild with ID #{guild_id}. Response: #{response.body}")
+      @logger.error("Could not add user with ID #{user_id} to guild with ID #{guild_id}. Response: #{response.body}")
     end
     response
   end
@@ -260,7 +260,7 @@ class DiscordApi
     response = Net::HTTP.patch(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not modify guild member with Guild ID #{guild_id} and User ID #{user_id}. " \
+    @logger.error("Could not modify guild member with Guild ID #{guild_id} and User ID #{user_id}. " \
     "Response: #{response.body}")
     response
   end
@@ -275,12 +275,12 @@ class DiscordApi
     response = Net::HTTP.patch(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not modify current member in guild with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not modify current member in guild with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
   def modify_current_user_nick(guild_id, nick = nil, audit_reason = nil)
-    Logger.warn('The "Modify Current User Nick" endpoint has been deprecated and should not be used!')
+    @logger.warn('The "Modify Current User Nick" endpoint has been deprecated and should not be used!')
     output = {}
     output[:nick] = nick unless nick.nil?
     url = URI("#{@base_url}/guilds/#{guild_id}/users/@me/nick")
@@ -290,7 +290,7 @@ class DiscordApi
     response = Net::HTTP.patch(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not modify current user nick in guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not modify current user nick in guild with ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -301,7 +301,7 @@ class DiscordApi
     response = Net::HTTP.put(url, nil, headers)
     return response unless response.code != '204'
 
-    Logger.error("Could not add role with ID #{role_id}, to user with ID #{user_id} in guild with ID #{guild_id}." \
+    @logger.error("Could not add role with ID #{role_id}, to user with ID #{user_id} in guild with ID #{guild_id}." \
                    " Response: #{response.body}")
     response
   end
@@ -313,7 +313,7 @@ class DiscordApi
     response = Net::HTTP.delete(url, headers)
     return response unless response.code != '204'
 
-    Logger.error("Could not remove role with ID #{role_id}, from user with ID #{user_id}" \
+    @logger.error("Could not remove role with ID #{role_id}, from user with ID #{user_id}" \
                   " in guild with ID #{guild_id}. Response: #{response.body}")
     response
   end
@@ -325,7 +325,7 @@ class DiscordApi
     response = Net::HTTP.delete(url, headers)
     return response unless response.code != '204'
 
-    Logger.error("Could not remove user with ID #{user_id} from guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not remove user with ID #{user_id} from guild with ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -340,7 +340,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not get guild bans with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get guild bans with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -351,9 +351,9 @@ class DiscordApi
     return response unless response.code != '200'
 
     if response.code == '404'
-      Logger.warn("No ban found for user with ID #{user_id} in guild with ID #{guild_id}.")
+      @logger.warn("No ban found for user with ID #{user_id} in guild with ID #{guild_id}.")
     else
-      Logger.error("Could not get guild ban for user with ID #{user_id} in guild with ID #{guild_id}." \
+      @logger.error("Could not get guild ban for user with ID #{user_id} in guild with ID #{guild_id}." \
                      " Response: #{response.body}")
     end
     response
@@ -362,7 +362,7 @@ class DiscordApi
   def create_guild_ban(guild_id, user_id, delete_message_days = nil, delete_message_seconds = nil, audit_reason = nil)
     output = {}
     unless delete_message_days.nil?
-      Logger.warn('The "delete_message_days" parameter has been deprecated and should not be used!')
+      @logger.warn('The "delete_message_days" parameter has been deprecated and should not be used!')
       output[:delete_message_days] = delete_message_days
     end
     output[:delete_message_seconds] = delete_message_seconds unless delete_message_seconds.nil?
@@ -373,7 +373,7 @@ class DiscordApi
     response = Net::HTTP.put(url, data, headers)
     return response unless response.code != '204'
 
-    Logger.error("Could not create guild ban for user with ID #{user_id} in guild with ID #{guild_id}." \
+    @logger.error("Could not create guild ban for user with ID #{user_id} in guild with ID #{guild_id}." \
                    " Response: #{response.body}")
     response
   end
@@ -385,7 +385,7 @@ class DiscordApi
     response = Net::HTTP.delete(url, headers)
     return response unless response.code != '204'
 
-    Logger.error("Could not remove guild ban for user with ID #{user_id} in guild with ID #{guild_id}" \
+    @logger.error("Could not remove guild ban for user with ID #{user_id} in guild with ID #{guild_id}" \
                   " Response: #{response.body}")
     response
   end
@@ -402,9 +402,9 @@ class DiscordApi
     return response unless response.code != '200'
 
     if response.code == '500000'
-      Logger.error("No users were banned in bulk ban in guild with ID #{guild_id}. Response: #{response.body}")
+      @logger.error("No users were banned in bulk ban in guild with ID #{guild_id}. Response: #{response.body}")
     else
-      Logger.error("Could not bulk ban users in guild with ID #{guild_id}. Response: #{response.body}")
+      @logger.error("Could not bulk ban users in guild with ID #{guild_id}. Response: #{response.body}")
     end
     response
   end
@@ -415,7 +415,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not get guild roles with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get guild roles with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -425,7 +425,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not get role with ID #{role_id} in guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get role with ID #{role_id} in guild with ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -446,7 +446,7 @@ class DiscordApi
     response = Net::HTTP.post(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not create guild role in guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not create guild role in guild with ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -461,7 +461,7 @@ class DiscordApi
     response = Net::HTTP.patch(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not modify guild role positions in guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not modify guild role positions in guild with ID #{guild_id}. Response: #{response.body}")
     response
   end
 
@@ -482,7 +482,7 @@ class DiscordApi
     response = Net::HTTP.patch(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Could not modify guild role with ID #{role_id} in guild with ID #{guild_id}." \
+    @logger.error("Could not modify guild role with ID #{role_id} in guild with ID #{guild_id}." \
                  " Response: #{response.body}")
     response
   end
@@ -497,7 +497,7 @@ class DiscordApi
     response = Net::HTTP.post(url, data, headers)
     return unless response != JSON.generate({ level: level }) # might not be the correct way to check for success
 
-    Logger.error("Failed to modify guild MFA level. Response: #{response.body}")
+    @logger.error("Failed to modify guild MFA level. Response: #{response.body}")
     response
   end
 
@@ -508,7 +508,7 @@ class DiscordApi
     response = Net::HTTP.delete(url, headers)
     return response unless response.code != '204'
 
-    Logger.error("Failed to delete guild role. Response: #{response.body}")
+    @logger.error("Failed to delete guild role. Response: #{response.body}")
     response
   end
 
@@ -522,7 +522,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Failed to get guild prune count. Response: #{response.body}")
+    @logger.error("Failed to get guild prune count. Response: #{response.body}")
     response
   end
 
@@ -533,7 +533,7 @@ class DiscordApi
     output[:compute_prune_count] = compute_prune_count unless compute_prune_count.nil?
     output[:include_roles] = include_roles unless include_roles.nil?
     unless reason.nil?
-      Logger.warn('The "reason" parameter has been deprecated and should not be used!')
+      @logger.warn('The "reason" parameter has been deprecated and should not be used!')
       output[:reason] = reason
     end
     url = URI("#{@base_url}/guilds/#{guild_id}/prune")
@@ -543,7 +543,7 @@ class DiscordApi
     response = Net::HTTP.post(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Failed to begin guild prune. Response: #{response.body}")
+    @logger.error("Failed to begin guild prune. Response: #{response.body}")
     response
   end
 
@@ -553,7 +553,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Failed to get guild voice regions. Response: #{response.body}")
+    @logger.error("Failed to get guild voice regions. Response: #{response.body}")
     response
   end
 
@@ -563,7 +563,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Failed to get guild invites. Response: #{response.body}")
+    @logger.error("Failed to get guild invites. Response: #{response.body}")
     response
   end
 
@@ -573,12 +573,12 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     unless response.code != '200'
       if JSON.parse(response.body).length == 50
-        Logger.warn('The endpoint returned 50 integrations, which means there could be more integrations not shown.')
+        @logger.warn('The endpoint returned 50 integrations, which means there could be more integrations not shown.')
       end
       response
     end
 
-    Logger.error("Failed to get guild integrations. Response: #{response.body}")
+    @logger.error("Failed to get guild integrations. Response: #{response.body}")
     response
   end
 
@@ -589,7 +589,7 @@ class DiscordApi
     response = Net::HTTP.delete(url, headers)
     return response unless response.code != '204'
 
-    Logger.error("Failed to delete guild integration. Response: #{response.body}")
+    @logger.error("Failed to delete guild integration. Response: #{response.body}")
     response
   end
 
@@ -599,7 +599,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Failed to get guild widget settings. Response: #{response.body}")
+    @logger.error("Failed to get guild widget settings. Response: #{response.body}")
     response
   end
 
@@ -614,7 +614,7 @@ class DiscordApi
     response = Net::HTTP.patch(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Failed to modify guild widget. Response: #{response.body}")
+    @logger.error("Failed to modify guild widget. Response: #{response.body}")
     response
   end
 
@@ -624,7 +624,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Failed to get guild widget. Response: #{response.body}")
+    @logger.error("Failed to get guild widget. Response: #{response.body}")
     response
   end
 
@@ -634,7 +634,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error('Failed to get guild vanity URL, perhaps you do not have the MANAGE_GUILD permission. ' \
+    @logger.error('Failed to get guild vanity URL, perhaps you do not have the MANAGE_GUILD permission. ' \
                  "If you only want to get the Vanity URL, use the get_guild endpoint. Response: #{response.body}")
     response
   end
@@ -644,7 +644,7 @@ class DiscordApi
     true_keys = options.select { |_k, v| v }.keys
 
     if true_keys.size > 1
-      Logger.error('You can only specify one of shield, banner1, banner2, banner3, or banner4 as true.')
+      @logger.error('You can only specify one of shield, banner1, banner2, banner3, or banner4 as true.')
       nil
     elsif true_keys.size == 1
       style = true_keys.first.to_s
@@ -658,7 +658,7 @@ class DiscordApi
     response = Net::HTTP.get(url)
     return unless response.code != '200'
 
-    Logger.error("Failed to get guild widget image. Response: #{response.body}")
+    @logger.error("Failed to get guild widget image. Response: #{response.body}")
     response
   end
 
@@ -668,7 +668,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Failed to get guild welcome screen. Response: #{response.body}")
+    @logger.error("Failed to get guild welcome screen. Response: #{response.body}")
     response
   end
 
@@ -685,7 +685,7 @@ class DiscordApi
     response = Net::HTTP.patch(url, data, headers)
     return response unless response.code != '200'
 
-    Logger.error("Failed to modify guild welcome screen. Response: #{response.body}")
+    @logger.error("Failed to modify guild welcome screen. Response: #{response.body}")
     response
   end
 
@@ -695,7 +695,7 @@ class DiscordApi
     response = Net::HTTP.get(url, headers)
     return response unless response.code != '200'
 
-    Logger.error("Failed to get guild onboarding. Response: #{response.body}")
+    @logger.error("Failed to get guild onboarding. Response: #{response.body}")
     response
   end
 
@@ -715,7 +715,7 @@ class DiscordApi
     # TODO: Create a wrapper to get the response code so we don't get NoMethodError
     return response unless response.code != '200'
 
-    Logger.error("Failed to modify guild onboarding. Response: #{response.body}")
+    @logger.error("Failed to modify guild onboarding. Response: #{response.body}")
     response
   end
 
@@ -741,7 +741,7 @@ class DiscordApi
     # same problem with as above
     return response unless response.code != '200'
 
-    Logger.error("Failed to modify guild incident actions. Response: #{response.body}")
+    @logger.error("Failed to modify guild incident actions. Response: #{response.body}")
     response
   end
 end

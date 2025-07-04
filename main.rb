@@ -11,21 +11,47 @@ require_relative 'logger'
 # DiscordApi
 # The class that contains everything that interacts with the Discord API.
 class DiscordApi
-  attr_accessor(:base_url, :authorization_header, :application_id, :interaction_created, :interaction)
+  attr_accessor(:base_url, :authorization_header, :application_id, :interaction_created, :interaction, :logger)
 
-  def initialize(authorization_token_type, authorization_token, application_id = nil)
+  def initialize(authorization_token_type, authorization_token, verbosity_level = nil)
     @api_version = '10'
     @base_url = "https://discord.com/api/v#{@api_version}"
     @authorization_header = "#{authorization_token_type} #{authorization_token}"
-    if application_id.nil?
-      url = URI("#{@base_url}/applications/@me")
-      headers = { 'Authorization': @authorization_header }
-      @application_id = JSON.parse(Net::HTTP.get(url, headers))['id']
-    else
-      @application_id = application_id
-    end
+    url = URI("#{@base_url}/applications/@me")
+    headers = { 'Authorization': @authorization_header }
+    @application_id = JSON.parse(Net::HTTP.get(url, headers))['id']
     @interaction_created = false
     @interaction = {}
+    if verbosity_level.nil?
+      @verbosity_level = 3
+    elsif verbosity_level.is_a?(String)
+      case verbosity_level.downcase
+      when 'all'
+        @verbosity_level = 4
+      when 'info'
+        @verbosity_level = 3
+      when 'warning'
+        @verbosity_level = 2
+      when 'error'
+        @verbosity_level = 1
+      when 'none'
+        @verbosity_level = 0
+      else
+        Logger2.s_error("Unknown verbosity level: #{verbosity_level}. Defaulting to 'info'.")
+        @verbosity_level = 3
+      end
+    elsif verbosity_level.is_a?(Integer)
+      if verbosity_level >= 0 && verbosity_level <= 4
+        @verbosity_level = verbosity_level
+      else
+        Logger2.s_error("Unknown verbosity level: #{verbosity_level}. Defaulting to 'info'.")
+        @verbosity_level = 3
+      end
+    else
+      Logger2.s_error("Unknown verbosity level: #{verbosity_level}. Defaulting to 'info'.")
+      @verbosity_level = 3
+    end
+    @logger = Logger2.new(@verbosity_level)
   end
 
   def self.handle_query_strings(query_string_hash)
@@ -222,25 +248,25 @@ class DiscordApi
         loop do
           message = connection.read
           message = JSON.parse(message, symbolize_names: true)
-          Logger.debug(message)
+          @logger.debug(message)
 
           case message
           in { op: 10 }
-            Logger.info('Received Hello')
+            @logger.info('Received Hello')
             @heartbeat_interval = message[:d][:heartbeat_interval]
           in { op:  1 }
-            Logger.info('Received Heartbeat Request')
+            @logger.info('Received Heartbeat Request')
             connection.write JSON.generate({ op: 1, d: nil })
             connection.flush
           in { op: 11 }
-            Logger.info('Received Heartbeat ACK')
+            @logger.info('Received Heartbeat ACK')
           in { op: 0, t: 'INTERACTION_CREATE' }
-            Logger.info('An interaction was created')
+            @logger.info('An interaction was created')
             block.call(message)
           in { op: 0 }
-            Logger.info('An event was dispatched')
+            @logger.info('An event was dispatched')
           else
-            Logger.error('Unimplemented event type')
+            @logger.error('Unimplemented event type')
           end
         end
       end
