@@ -16,6 +16,8 @@ class DiscordApi
   def initialize(authorization_token_type, authorization_token, verbosity_level = nil)
     @api_version = '10'
     @base_url = "https://discord.com/api/v#{@api_version}"
+    @authorization_token_type = authorization_token_type
+    @authorization_token = authorization_token
     @authorization_header = "#{authorization_token_type} #{authorization_token}"
     url = URI("#{@base_url}/applications/@me")
     headers = { 'Authorization': @authorization_header }
@@ -258,7 +260,82 @@ class DiscordApi
     Net::HTTP.put(url, data, headers)
   end
 
-  def connect_gateway(&block)
+  def connect_gateway(activities: nil, os: nil, browser: nil, device: nil, intents: nil, presence_since: nil,
+                      presence_status: nil, presence_afk: nil, &block)
+    if @authorization_token_type == 'Bearer'
+      acceptable_activities_keys = %w[name type url created_at timestamps application_id details state emoji party
+                                      assets secrets instance flags buttons]
+    elsif @authorization_token_type == 'Bot'
+      acceptable_activities_keys = %w[name state type url]
+    end
+    if activities.is_a?(Hash)
+      activities.each_key do |key|
+        next if acceptable_activities_keys.include?(key.to_s)
+
+        @logger.error("Unknown activity key: #{key}. Deleting key from hash.")
+        activities.delete(key)
+      end
+      if activities.empty?
+        @logger.error('Empty activity hash. No activities will be sent.')
+        activities = nil
+      else
+        activities = [activities]
+      end
+    elsif activities.is_a?(Array)
+      activities.each do |activity|
+        if activity.is_a?(Hash)
+          activity.each_key do |key|
+            next if acceptable_activities_keys.include?(key.to_s)
+
+            @logger.error("Unknown activity key: #{key}. Deleting key from Hash.")
+            activity.delete(key)
+          end
+          if activity.empty?
+            @logger.error('Empty activity hash. Deleting from Array.')
+            activities.delete(activity)
+          end
+        else
+          @logger.error("Invalid activity: #{activity}. Expected a Hash. Deleting from Array.")
+          activities.delete(activity)
+        end
+      end
+      if activities.empty?
+        @logger.error('Empty activities Array. No activities will be sent.')
+        activities = nil
+      end
+    elsif !activities.nil?
+      @logger.error("Invalid activities: #{activities}. Expected a Hash or an Array of Hashes.")
+      activities = nil
+    end
+    unless os.is_a?(String) || os.nil?
+      @logger.error("Invalid OS: #{os}. Expected a String. Defaulting to #{RbConfig::CONFIG['host_os']}.")
+      os = nil
+    end
+    unless browser.is_a?(String) || browser.nil?
+      @logger.error("Invalid browser: #{browser}. Expected a String. Defaulting to 'discord.rb'.")
+      browser = nil
+    end
+    unless device.is_a?(String) || device.nil?
+      @logger.error("Invalid device: #{device}. Expected a String. Defaulting to 'discord.rb'.")
+      device = nil
+    end
+    unless (intents.is_a?(Integer) && intents >= 0 && intents <= 131_071) || intents.nil?
+      @logger.error("Invalid intents: #{intents}. Expected an Integer between 0 and 131.071. Defaulting to 513" \
+                    ' (GUILD_MESSAGES, GUILDS).')
+      intents = nil
+    end
+    unless presence_since.is_a?(Integer) || presence_since == true || presence_since.nil?
+      @logger.error("Invalid presence since: #{presence_since}. Expected an Integer or true. Defaulting to nil.")
+      presence_since = nil
+    end
+    unless presence_status.is_a?(String) || presence_status.nil?
+      @logger.error("Invalid presence status: #{presence_status}. Expected a String. Defaulting to nil.")
+      presence_status = nil
+    end
+    unless [true, false].include?(presence_afk) || presence_afk.nil?
+      @logger.error("Invalid presence afk: #{presence_afk}. Expected a Boolean. Defaulting to nil.")
+      presence_afk = nil
+    end
     Async do |_task|
       url = "#{JSON.parse(Net::HTTP.get(URI("#{@base_url}/gateway")))['url']}/?v=#{@api_version}&encoding=json"
       endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
@@ -267,10 +344,28 @@ class DiscordApi
         connection.write JSON.generate({ op: 1, d: nil })
         connection.flush
 
-        connection.write JSON.generate({ op: 2,
-                                         d: { token: @authorization_header, intents: 513,
-                                              properties: { os: 'linux', browser: 'discord.rb',
-                                                            device: 'discord.rb' } } })
+        identify = {}
+        identify[:op] = 2
+        identify[:d] = {}
+        identify[:d][:token] = @authorization_header
+        identify[:d][:intents] = intents || 513
+        identify[:d][:properties] = {}
+        identify[:d][:properties][:os] = os || RbConfig::CONFIG['host_os']
+        identify[:d][:properties][:browser] = browser || 'discord.rb'
+        identify[:d][:properties][:device] = device || 'discord.rb'
+        if !activities.nil? || !presence_since.nil? || !presence_status.nil? || !presence_afk.nil?
+          identify[:d][:presence] = {}
+          identify[:d][:presence][:activities] = activities unless activities.nil?
+          if presence_since == true
+            identify[:d][:presence][:since] = (Time.now.to_f * 1000).floor
+          elsif presence_since.is_a?(Integer)
+            identify[:d][:presence][:since] = presence_since
+          end
+          identify[:d][:presence][:status] = presence_status unless presence_status.nil?
+          identify[:d][:presence][:afk] = presence_afk unless presence_afk.nil?
+        end
+        @logger.debug("Identify payload: #{JSON.generate(identify)}")
+        connection.write(JSON.generate(identify))
         connection.flush
 
         loop do
@@ -365,5 +460,31 @@ class DiscordApi
       bitwise_permission_flags[permission.downcase.to_sym]
     end
     permissions.reduce(0) { |acc, n| acc | n }
+  end
+
+  def self.calculate_gateway_intents(intents)
+    bitwise_intent_flags = {
+      guilds: 1 << 0,
+      guild_members: 1 << 1,
+      guild_bans: 1 << 2,
+      guild_emojis_and_stickers: 1 << 3,
+      guild_integrations: 1 << 4,
+      guild_webhooks: 1 << 5,
+      guild_invites: 1 << 6,
+      guild_voice_states: 1 << 7,
+      guild_presences: 1 << 8,
+      guild_messages: 1 << 9,
+      guild_message_reactions: 1 << 10,
+      guild_message_typing: 1 << 11,
+      direct_messages: 1 << 12,
+      direct_message_reactions: 1 << 13,
+      direct_message_typing: 1 << 14,
+      message_content: 1 << 15,
+      guild_scheduled_events: 1 << 16
+    }
+    intents = intents.map do |intent|
+      bitwise_intent_flags[intent.downcase.to_sym]
+    end
+    intents.reduce(0) { |acc, n| acc | n }
   end
 end
