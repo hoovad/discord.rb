@@ -7,6 +7,10 @@ require 'async/http/endpoint'
 require 'async/websocket/client'
 require_relative 'guild'
 require_relative 'logger'
+require_relative 'user'
+
+# TODO: If there is more than 1 optional parameter in a function, I should change it from setting the default value via
+# = to : so that the user can pass only the parameters they want to set
 
 # DiscordApi
 # The class that contains everything that interacts with the Discord API.
@@ -116,9 +120,9 @@ class DiscordApi
     end
   end
 
-  def create_global_application_command(name, name_localizations = nil, description = nil,
-                                        description_localizations = nil, options = nil,
-                                        default_member_permissions = nil, default_permission: true,
+  def create_global_application_command(name, name_localizations: nil, description: nil,
+                                        description_localizations: nil, options: nil,
+                                        default_member_permissions: nil, default_permission: true,
                                         integration_types: nil, contexts: nil, type: 1, nsfw: false)
     output = {}
     output[:name] = name
@@ -460,6 +464,65 @@ class DiscordApi
       bitwise_permission_flags[permission.downcase.to_sym]
     end
     permissions.reduce(0) { |acc, n| acc | n }
+  end
+
+  def self.reverse_permissions_integer(permissions_integer)
+    bitwise_permission_flags = {
+      create_instant_invite: 0x0000000000000001,
+      kick_members: 0x0000000000000002,
+      ban_members: 0x0000000000000004,
+      administrator: 0x0000000000000008,
+      manage_channels: 0x0000000000000010,
+      manage_guild: 0x0000000000000020,
+      add_reactions: 0x0000000000000040,
+      view_audit_log: 0x0000000000000080,
+      priority_speaker: 0x0000000000000100,
+      stream: 0x0000000000000200,
+      view_channel: 0x0000000000000400,
+      send_messages: 0x0000000000000800,
+      send_tts_messages: 0x0000000000001000,
+      manage_messages: 0x0000000000002000,
+      embed_links: 0x0000000000004000,
+      attach_files: 0x0000000000008000,
+      read_message_history: 0x0000000000010000,
+      mention_everyone: 0x0000000000020000,
+      use_external_emojis: 0x0000000000040000,
+      view_guild_insights: 0x0000000000080000,
+      connect: 0x0000000000100000,
+      speak: 0x0000000000200000,
+      mute_members: 0x0000000000400000,
+      deafen_members: 0x0000000000800000,
+      move_members: 0x0000000001000000,
+      use_vad: 0x0000000002000000,
+      change_nickname: 0x0000000004000000,
+      manage_nicknames: 0x0000000008000000,
+      manage_roles: 0x0000000010000000,
+      manage_webhooks: 0x0000000020000000,
+      manage_guild_expressions: 0x0000000040000000,
+      use_application_commands: 0x0000000080000000,
+      request_to_speak: 0x0000000100000000,
+      manage_events: 0x0000000200000000,
+      manage_threads: 0x0000000400000000,
+      create_public_threads: 0x0000000800000000,
+      create_private_threads: 0x0000001000000000,
+      use_external_stickers: 0x0000002000000000,
+      send_messages_in_threads: 0x0000004000000000,
+      use_embedded_activities: 0x0000008000000000,
+      moderate_members: 0x0000010000000000,
+      view_creator_monetization_analytics: 0x0000020000000000,
+      use_soundboard: 0x0000040000000000,
+      create_guild_expressions: 0x0000080000000000,
+      create_events: 0x0000100000000000,
+      use_external_sounds: 0x0000200000000000,
+      send_voice_messages: 0x0000400000000000,
+      send_polls: 0x0002000000000000,
+      use_external_apps: 0x0004000000000000
+    }
+    permissions = []
+    bitwise_permission_flags.each do |permission, value|
+      permissions << permission if (permissions_integer & value) != 0
+    end
+    permissions
   end
 
   def self.calculate_gateway_intents(intents)

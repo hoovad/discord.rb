@@ -358,7 +358,7 @@ class DiscordApi
     response
   end
 
-  def create_guild_ban(guild_id, user_id, delete_message_days = nil, delete_message_seconds = nil, audit_reason = nil)
+  def create_guild_ban(guild_id, user_id, delete_message_days: nil, delete_message_seconds: nil, audit_reason: nil)
     output = {}
     unless delete_message_days.nil?
       @logger.warn('The "delete_message_days" parameter has been deprecated and should not be used!')
