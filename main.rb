@@ -5,9 +5,11 @@ require 'json'
 require 'async'
 require 'async/http/endpoint'
 require 'async/websocket/client'
+require 'faraday'
 require_relative 'guild'
 require_relative 'logger'
 require_relative 'user'
+require_relative 'message'
 
 # TODO: If there is more than 1 optional parameter in a function, I should change it from setting the default value via
 # = to : so that the user can pass only the parameters they want to set
@@ -341,71 +343,113 @@ class DiscordApi
       presence_afk = nil
     end
     Async do |_task|
-      url = "#{JSON.parse(Net::HTTP.get(URI("#{@base_url}/gateway")))['url']}/?v=#{@api_version}&encoding=json"
-      endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
+      rescue_connection, sequence, resume_gateway_url, session_id = nil
+      loop do
+        url = if rescue_connection.nil?
+                "#{JSON.parse(Net::HTTP.get(URI("#{@base_url}/gateway")))['url']}/?v=#{@api_version}&encoding=json"
+              else
+                "#{rescue_connection[:resume_gateway_url]}/?v=#{@api_version}&encoding=json"
+              end
+        endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
+        Async::WebSocket::Client.connect(endpoint) do |connection|
+          connection.write JSON.generate({ op: 1, d: nil })
+          connection.flush
 
-      Async::WebSocket::Client.connect(endpoint) do |connection|
-        connection.write JSON.generate({ op: 1, d: nil })
-        connection.flush
-
-        identify = {}
-        identify[:op] = 2
-        identify[:d] = {}
-        identify[:d][:token] = @authorization_header
-        identify[:d][:intents] = intents || 513
-        identify[:d][:properties] = {}
-        identify[:d][:properties][:os] = os || RbConfig::CONFIG['host_os']
-        identify[:d][:properties][:browser] = browser || 'discord.rb'
-        identify[:d][:properties][:device] = device || 'discord.rb'
-        if !activities.nil? || !presence_since.nil? || !presence_status.nil? || !presence_afk.nil?
-          identify[:d][:presence] = {}
-          identify[:d][:presence][:activities] = activities unless activities.nil?
-          if presence_since == true
-            identify[:d][:presence][:since] = (Time.now.to_f * 1000).floor
-          elsif presence_since.is_a?(Integer)
-            identify[:d][:presence][:since] = presence_since
-          end
-          identify[:d][:presence][:status] = presence_status unless presence_status.nil?
-          identify[:d][:presence][:afk] = presence_afk unless presence_afk.nil?
-        end
-        @logger.debug("Identify payload: #{JSON.generate(identify)}")
-        connection.write(JSON.generate(identify))
-        connection.flush
-
-        loop do
-          message = connection.read
-          message = JSON.parse(message, symbolize_names: true)
-          @logger.debug(message)
-
-          case message
-          in { op: 10 }
-            @logger.info('Received Hello')
-            @heartbeat_interval = message[:d][:heartbeat_interval]
-          in { op:  1 }
-            @logger.info('Received Heartbeat Request')
-            connection.write JSON.generate({ op: 1, d: nil })
-            connection.flush
-          in { op: 11 }
-            @logger.info('Received Heartbeat ACK')
-          in { op: 0, t: 'INTERACTION_CREATE' }
-            @logger.info('An interaction was created')
-            block.call(message)
-          in { op: 0 }
-            @logger.info('An event was dispatched')
+          if rescue_connection.nil?
+            identify = {}
+            identify[:op] = 2
+            identify[:d] = {}
+            identify[:d][:token] = @authorization_header
+            identify[:d][:intents] = intents || 513
+            identify[:d][:properties] = {}
+            identify[:d][:properties][:os] = os || RbConfig::CONFIG['host_os']
+            identify[:d][:properties][:browser] = browser || 'discord.rb'
+            identify[:d][:properties][:device] = device || 'discord.rb'
+            if !activities.nil? || !presence_since.nil? || !presence_status.nil? || !presence_afk.nil?
+              identify[:d][:presence] = {}
+              identify[:d][:presence][:activities] = activities unless activities.nil?
+              if presence_since == true
+                identify[:d][:presence][:since] = (Time.now.to_f * 1000).floor
+              elsif presence_since.is_a?(Integer)
+                identify[:d][:presence][:since] = presence_since
+              end
+              identify[:d][:presence][:status] = presence_status unless presence_status.nil?
+              identify[:d][:presence][:afk] = presence_afk unless presence_afk.nil?
+            end
+            @logger.debug("Identify payload: #{JSON.generate(identify)}")
+            connection.write(JSON.generate(identify))
           else
-            @logger.error('Unimplemented event type')
+            @logger.info('Resuming connection...')
+            resume = {}
+            resume[:op] = 6
+            resume[:d] = {}
+            resume[:d][:token] = @authorization_header
+            resume[:d][:session_id] = rescue_connection[:session_id]
+            resume[:d][:seq] = rescue_connection[:sequence]
+            @logger.debug("Resume payload: #{JSON.generate(resume)}")
+            connection.write(JSON.generate(resume))
+            rescue_connection, sequence, resume_gateway_url, session_id = nil
           end
+          connection.flush
+
+          loop do
+            message = connection.read
+            message = JSON.parse(message, symbolize_names: true)
+            @logger.debug(message)
+
+            case message
+            in { op: 10 }
+              @logger.info('Received Hello')
+              @heartbeat_interval = message[:d][:heartbeat_interval]
+            in { op:  1 }
+              @logger.info('Received Heartbeat Request')
+              connection.write JSON.generate({ op: 1, d: nil })
+              connection.flush
+            in { op: 11 }
+              @logger.info('Received Heartbeat ACK')
+            in { op: 0, t: 'INTERACTION_CREATE' }
+              @logger.info('An interaction was created')
+              sequence = message[:s]
+              block.call(message)
+            in { op: 0, t: 'READY' }
+              @logger.info('Recieved Ready')
+              session_id = message[:d][:session_id]
+              resume_gateway_url = message[:d][:resume_gateway_url]
+              sequence = message[:s]
+            in { op: 0 }
+              @logger.info('An event was dispatched')
+              sequence = message[:s]
+            in { op: 7 }
+              rescue_connection = { type: 'reconnect', session_id: session_id, resume_gateway_url: resume_gateway_url,
+                                    sequence: sequence }
+              @logger.warn('Received Reconnect. A rescue will be attempted....')
+            else
+              @logger.error('Unimplemented event type')
+            end
+          end
+        end
+      rescue Protocol::WebSocket::ClosedError
+        @logger.warn('WebSocket connection closed. Attempting rescue.')
+        if rescue_connection && rescue_connection[:type] == 'reconnect'
+          @logger.info('Rescue possible. Starting...')
+          next
         end
       end
     end
   end
 
   def respond_interaction(interaction, response, with_response: false)
-    url = URI("#{@base_url}/interactions/#{interaction[:d][:id]}/#{interaction[:d][:token]}/callback?with_response=" \
-    "#{with_response}")
+    query_string_hash = {}
+    query_string_hash[:with_response] = with_response
+    query_string = DiscordApi.handle_query_strings(query_string_hash)
+    url = "#{@base_url}/interactions/#{interaction[:d][:id]}/#{interaction[:d][:token]}/callback#{query_string}"
     data = JSON.generate(response)
     headers = { 'content-type': 'application/json' }
-    Net::HTTP.post(url, data, headers)
+    response = DiscordApi.post(url, data, headers)
+    return response if (response.status == 204 && !with_response) || (response.status == 200 && with_response)
+
+    @logger.error("Failed to respond to interaction. Response: #{response.body}")
+    response
   end
 
   def self.calculate_permissions_integer(permissions)
@@ -549,5 +593,45 @@ class DiscordApi
       bitwise_intent_flags[intent.downcase.to_sym]
     end
     intents.reduce(0) { |acc, n| acc | n }
+  end
+
+  # TODO: Transition from Net::HTTP to below wrapper methods
+  def self.get(url, headers = nil)
+    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
+    @logger.error("Empty/invalid URL provided: #{url}. Cannot perform GET request.") if split_url.empty?
+    host = split_url[0]
+    path = split_url[1] if split_url[1]
+    conn = Faraday.new(url: host, headers: headers)
+    if path
+      conn.get(path)
+    else
+      conn.get
+    end
+  end
+
+  def self.delete(url, headers = nil)
+    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
+    @logger.error("Empty/invalid URL provided: #{url}. Cannot perform DELETE request.") if split_url.empty?
+    host = split_url[0]
+    path = split_url[1] if split_url[1]
+    conn = Faraday.new(url: host, headers: headers)
+    if path
+      conn.delete(path)
+    else
+      conn.delete
+    end
+  end
+
+  def self.post(url, data, headers = nil)
+    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
+    @logger.error("Empty/invalid URL provided: #{url}. Cannot perform POST request.") if split_url.empty?
+    host = split_url[0]
+    path = split_url[1] if split_url[1]
+    conn = Faraday.new(url: host, headers: headers)
+    if path
+      conn.post(path, data)
+    else
+      conn.post('', data)
+    end
   end
 end

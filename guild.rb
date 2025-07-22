@@ -34,13 +34,13 @@ class DiscordApi
 
   def get_guild(guild_id, with_counts = nil)
     url = if !with_counts.nil?
-            URI("#{@base_url}/guilds/#{guild_id}?with_counts=#{with_counts}")
+            "#{@base_url}/guilds/#{guild_id}?with_counts=#{with_counts}"
           else
-            URI("#{@base_url}/guilds/#{guild_id}")
+            "#{@base_url}/guilds/#{guild_id}"
           end
-    headers = { 'Authorization': @authorization_header }
-    response = Net::HTTP.get(url, headers)
-    return response unless response.code != '200'
+    headers = { 'Authorization' => @authorization_header }
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != 200
 
     @logger.error("Could not get guild with Guild ID #{guild_id}. Response: #{response.body}")
     response
@@ -183,10 +183,10 @@ class DiscordApi
   end
 
   def get_guild_member(guild_id, user_id)
-    url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
-    headers = { 'Authorization': @authorization_header }
-    response = Net::HTTP.get(url, headers)
-    return response unless response.code != '200'
+    url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}"
+    headers = { 'Authorization' => @authorization_header }
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != 200
 
     @logger.error("Could not get guild member with Guild ID #{guild_id} and User ID #{user_id}. Response:" \
                    "#{response.body}")
@@ -212,10 +212,10 @@ class DiscordApi
     query_string_hash[:query] = query
     query_string_hash[:limit] = limit
     query_string = DiscordApi.handle_query_strings(query_string_hash)
-    url = URI("#{@base_url}/guilds/#{guild_id}/members/search#{query_string}")
+    url = "#{@base_url}/guilds/#{guild_id}/members/search#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    response = Net::HTTP.get(url, headers)
-    return response unless response.code != '200'
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != 200
 
     @logger.error("Could not search members with Guild ID #{guild_id}. Response: #{response.body}")
     response
@@ -317,12 +317,14 @@ class DiscordApi
     response
   end
 
-  def remove_guild_member(guild_id, user_id, audit_reason = nil)
-    url = URI("#{@base_url}/guilds/#{guild_id}/members/#{user_id}")
-    headers = { 'Authorization': @authorization_header }
+  # For some reason when i use Net::HTTP in this function it doesn't work, but when i use Faraday it does.
+  # I should probably migrate to Faraday everywhere, but for now just a temporary fix.
+  def remove_guild_member(guild_id, user_id, audit_reason: nil)
+    url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}"
+    headers = { 'Authorization' => @authorization_header }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = Net::HTTP.delete(url, headers)
-    return response unless response.code != '204'
+    response = DiscordApi.delete(url, headers)
+    return response unless response.status != 204
 
     @logger.error("Could not remove user with ID #{user_id} from guild with ID #{guild_id}. Response: #{response.body}")
     response
@@ -334,22 +336,22 @@ class DiscordApi
     query_string_hash[:before] = before unless before.nil?
     query_string_hash[:after] = after unless after.nil?
     query_string = DiscordApi.handle_query_strings(query_string_hash)
-    url = URI("#{@base_url}/guilds/#{guild_id}/bans#{query_string}")
-    headers = { 'Authorization': @authorization_header }
-    response = Net::HTTP.get(url, headers)
-    return response unless response.code != '200'
+    url = "#{@base_url}/guilds/#{guild_id}/bans#{query_string}"
+    headers = { 'Authorization' => @authorization_header }
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != '200'
 
     @logger.error("Could not get guild bans with Guild ID #{guild_id}. Response: #{response.body}")
     response
   end
 
   def get_guild_ban(guild_id, user_id)
-    url = URI("#{@base_url}/guilds/#{guild_id}/bans/#{user_id}")
+    url = "#{@base_url}/guilds/#{guild_id}/bans/#{user_id}"
     headers = { 'Authorization': @authorization_header }
-    response = Net::HTTP.get(url, headers)
-    return response unless response.code != '200'
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != 200
 
-    if response.code == '404'
+    if response.status == 404
       @logger.warn("No ban found for user with ID #{user_id} in guild with ID #{guild_id}.")
     else
       @logger.error("Could not get guild ban for user with ID #{user_id} in guild with ID #{guild_id}." \
@@ -709,17 +711,12 @@ class DiscordApi
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
     response = Net::HTTP.put(url, data, headers)
-    # the .code function could produce 'NoMethodError' but we have not tested it yet
-    # i should create my own wrapper to get the response code
-    # TODO: Create a wrapper to get the response code so we don't get NoMethodError
     return response unless response.code != '200'
 
     @logger.error("Failed to modify guild onboarding. Response: #{response.body}")
     response
   end
 
-  # it is not clear in the documentation whether invites_disabled_until and dms_disabled_until are required or optional
-  # but we will assume they are optional for now
   def modify_guild_incident_actions(guild_id, invites_disabled_until = nil, dms_disabled_until = nil)
     output = {}
     # if only discord wouldn't of have required to set a variable to null for some functionality
