@@ -24,11 +24,11 @@ class DiscordApi
     output[:flags] = flags if flags
     output[:enforce_nonce] = enforce_nonce if enforce_nonce
     output[:poll] = poll if poll
-    url = URI("#{@base_url}/channels/#{channel_id}/messages")
+    url = "#{@base_url}/channels/#{channel_id}/messages"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = Net::HTTP.post(url, data, headers)
-    return response unless response.code != '200'
+    response = DiscordApi.post(url, data, headers)
+    return response unless response.status != 200
 
     @logger.error("Failed to create message in channel #{channel_id}. Response: #{response.body}")
     response

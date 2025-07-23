@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'net/http'
 require 'json'
 require 'async'
 require 'async/http/endpoint'
@@ -10,9 +9,6 @@ require 'disrb/guild'
 require 'disrb/logger'
 require 'disrb/user'
 require 'disrb/message'
-
-# TODO: If there is more than 1 optional parameter in a function, I should change it from setting the default value via
-# = to : so that the user can pass only the parameters they want to set
 
 # DiscordApi
 # The class that contains everything that interacts with the Discord API.
@@ -25,41 +21,49 @@ class DiscordApi
     @authorization_token_type = authorization_token_type
     @authorization_token = authorization_token
     @authorization_header = "#{authorization_token_type} #{authorization_token}"
-    url = URI("#{@base_url}/applications/@me")
-    headers = { 'Authorization': @authorization_header }
-    @application_id = JSON.parse(Net::HTTP.get(url, headers))['id']
     @interaction_created = false
     @interaction = {}
     if verbosity_level.nil?
-      @verbosity_level = 3
+      @verbosity_level = 4
     elsif verbosity_level.is_a?(String)
       case verbosity_level.downcase
       when 'all'
-        @verbosity_level = 4
+        @verbosity_level = 5
       when 'info'
-        @verbosity_level = 3
+        @verbosity_level = 4
       when 'warning'
-        @verbosity_level = 2
+        @verbosity_level = 3
       when 'error'
+        @verbosity_level = 2
+      when 'fatal_error'
         @verbosity_level = 1
       when 'none'
         @verbosity_level = 0
       else
         Logger2.s_error("Unknown verbosity level: #{verbosity_level}. Defaulting to 'info'.")
-        @verbosity_level = 3
+        @verbosity_level = 4
       end
     elsif verbosity_level.is_a?(Integer)
-      if verbosity_level >= 0 && verbosity_level <= 4
+      if verbosity_level >= 0 && verbosity_level <= 5
         @verbosity_level = verbosity_level
       else
         Logger2.s_error("Unknown verbosity level: #{verbosity_level}. Defaulting to 'info'.")
-        @verbosity_level = 3
+        @verbosity_level = 4
       end
     else
       Logger2.s_error("Unknown verbosity level: #{verbosity_level}. Defaulting to 'info'.")
-      @verbosity_level = 3
+      @verbosity_level = 4
     end
     @logger = Logger2.new(@verbosity_level)
+    url = "#{@base_url}/applications/@me"
+    headers = { 'Authorization': @authorization_header }
+    response = DiscordApi.get(url, headers)
+    if response.status == 200
+      @application_id = JSON.parse(response.body)['id']
+    else
+      @logger.fatal_error("Failed to get application ID with response: #{response.body}")
+      exit
+    end
   end
 
   def self.handle_query_strings(query_string_hash)
@@ -91,21 +95,25 @@ class DiscordApi
 
   def create_guild_application_command(guild_id, name, name_localizations: nil, description: nil,
                                        description_localizations: nil, options: nil, default_member_permissions: nil,
-                                       default_permission: true, type: 1, nsfw: false)
+                                       default_permission: nil, type: nil, nsfw: nil)
     output = {}
     output[:name] = name
     output[:name_localizations] = name_localizations unless name_localizations.nil?
     output[:description] = description unless description.nil?
     output[:description_localizations] = description_localizations unless description_localizations.nil?
     output[:options] = options unless options.nil?
-    output[:default_permission] = default_permission
-    output[:type] = type
-    output[:nsfw] = nsfw
+    output[:default_permission] = default_permission unless default_permission.nil?
+    output[:type] = type unless default_permission.nil?
+    output[:nsfw] = nsfw unless nsfw.nil?
     output[:default_member_permissions] = default_member_permissions unless default_member_permissions.nil?
-    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands")
+    url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.post(url, data, headers)
+    response = DiscordApi.post(url, data, headers)
+    return response unless response.status != 201 || response.status != 200
+
+    @logger.error("Failed to create guild application command in guild with ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def create_guild_application_commands(application_commands_array)
@@ -124,24 +132,28 @@ class DiscordApi
 
   def create_global_application_command(name, name_localizations: nil, description: nil,
                                         description_localizations: nil, options: nil,
-                                        default_member_permissions: nil, default_permission: true,
-                                        integration_types: nil, contexts: nil, type: 1, nsfw: false)
+                                        default_member_permissions: nil, default_permission: nil,
+                                        integration_types: nil, contexts: nil, type: nil, nsfw: nil)
     output = {}
     output[:name] = name
     output[:name_localizations] = name_localizations unless name_localizations.nil?
     output[:description] = description unless description.nil?
     output[:description_localizations] = description_localizations unless description_localizations.nil?
     output[:options] = options unless options.nil?
-    output[:default_permission] = default_permission
-    output[:type] = type
-    output[:nsfw] = nsfw
+    output[:default_permission] = default_permission unless default_permission.nil?
+    output[:type] = type unless type.nil?
+    output[:nsfw] = nsfw unless nsfw.nil?
     output[:default_member_permissions] = default_member_permissions unless default_member_permissions.nil?
     output[:integration_types] = integration_types unless integration_types.nil?
     output[:contexts] = contexts unless contexts.nil?
-    url = URI("#{@base_url}/applications/#{@application_id}/commands")
+    url = "#{@base_url}/applications/#{@application_id}/commands"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.post(url, data, headers)
+    response = DiscordApi.post(url, data, headers)
+    return response unless response.status != 201 || response.status != 200
+
+    @logger.error("Failed to create global application command. Response: #{response.body}")
+    response
   end
 
   def create_global_application_commands(application_commands_array)
@@ -158,112 +170,173 @@ class DiscordApi
     end
   end
 
-  def edit_global_application_command(command_id, name = nil, name_localizations = nil, description = nil,
-                                      description_localizations = nil, options = nil, default_member_permissions = nil,
-                                      default_permission: true, integration_types: nil, contexts: nil, nsfw: nil)
+  def edit_global_application_command(command_id, name: nil, name_localizations: nil, description: nil,
+                                      description_localizations: nil, options: nil, default_member_permissions: nil,
+                                      default_permission: nil, integration_types: nil, contexts: nil, nsfw: nil)
     output = {}
     output[:name] = name
     output[:name_localizations] = name_localizations unless name_localizations.nil?
     output[:description] = description unless description.nil?
     output[:description_localizations] = description_localizations unless description_localizations.nil?
     output[:options] = options unless options.nil?
-    output[:default_permission] = default_permission
-    output[:nsfw] = nsfw
+    output[:default_permission] = default_permission unless default_permission.nil?
+    output[:nsfw] = nsfw unless nsfw.nil?
     output[:default_member_permissions] = default_member_permissions unless default_member_permissions.nil?
     output[:integration_types] = integration_types unless integration_types.nil?
     output[:contexts] = contexts unless contexts.nil?
-    url = URI("#{@base_url}/applications/#{@application_id}/commands/#{command_id}")
+    url = "#{@base_url}/applications/#{@application_id}/commands/#{command_id}"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.patch(url, data, headers)
+    response = DiscordApi.patch(url, data, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to edit global application command with ID #{command_id}. Response: #{response.body}")
+    response
   end
 
-  def edit_guild_application_command(guild_id, command_id, name = nil, name_localizations = nil, description = nil,
-                                     description_localizations = nil, options = nil, default_member_permissions = nil,
-                                     default_permission: true, nsfw: nil)
+  def edit_guild_application_command(guild_id, command_id, name: nil, name_localizations: nil, description: nil,
+                                     description_localizations: nil, options: nil, default_member_permissions: nil,
+                                     default_permission: nil, nsfw: nil)
     output = {}
     output[:name] = name
     output[:name_localizations] = name_localizations unless name_localizations.nil?
     output[:description] = description unless description.nil?
     output[:description_localizations] = description_localizations unless description_localizations.nil?
     output[:options] = options unless options.nil?
-    output[:default_permission] = default_permission
-    output[:nsfw] = nsfw
+    output[:default_permission] = default_permission unless default_permission.nil?
+    output[:nsfw] = nsfw unless nsfw.nil?
     output[:default_member_permissions] = default_member_permissions unless default_member_permissions.nil?
-    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}")
+    url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.patch(url, data, headers)
+    response = DiscordApi.patch(url, data, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to edit guild application command with ID #{command_id}. Response: #{response.body}")
+    response
   end
 
   def delete_global_application_command(command_id)
-    url = URI("#{@base_url}/applications/#{@application_id}/commands/#{command_id}")
+    url = "#{@base_url}/applications/#{@application_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.delete(url, headers)
+    response = DiscordApi.delete(url, headers)
+    return response unless response.status != 204
+
+    @logger.error("Failed to delete global application command with ID #{command_id}. Response: #{response.body}")
+    response
   end
 
   def delete_guild_application_command(guild_id, command_id)
-    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}")
+    url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.delete(url, headers)
+    response = DiscordApi.delete(url, headers)
+    return response unless response.status != 204
+
+    @logger.error("Failed to delete guild application command with ID #{command_id} in guild with ID #{guild_id}. " \
+                  "Response: #{response.body}")
   end
 
-  def get_guild_application_commands(guild_id, with_localizations: false)
-    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands?with_localizations=" \
-          "#{with_localizations}")
+  def get_guild_application_commands(guild_id, with_localizations: nil)
+    query_string_hash = {}
+    query_string_hash[:with_localizations] = with_localizations unless with_localizations.nil?
+    query_string = DiscordApi.handle_query_strings(query_string_hash)
+    url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to get guild application commands for guild with ID #{guild_id}. Response: #{response.body}")
+    response
   end
 
   def get_global_application_commands(with_localizations: false)
-    url = URI("#{@base_url}/applications/#{@application_id}/commands?with_localizations=#{with_localizations}")
+    query_string_hash = {}
+    query_string_hash[:with_localizations] = with_localizations unless with_localizations.nil?
+    query_string = DiscordApi.handle_query_strings(query_string_hash)
+    url = "#{@base_url}/applications/#{@application_id}/commands#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to get global application commands. Response: #{response.body}")
+    response
   end
 
   def get_global_application_command(command_id)
-    url = URI("#{@base_url}/applications/#{@application_id}/commands/#{command_id}")
+    url = "#{@base_url}/applications/#{@application_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to get global application command with ID #{command_id}. Response: #{response.body}")
+    response
   end
 
   def get_guild_application_command(guild_id, command_id)
-    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}")
+    url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to get guild application command with ID #{command_id}. Response: #{response.body}")
+    response
   end
 
   def bulk_overwrite_global_application_commands(commands)
-    url = URI("#{@base_url}/applications/#{@application_id}/commands")
+    url = "#{@base_url}/applications/#{@application_id}/commands"
     data = JSON.generate(commands)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.put(url, data, headers)
+    response = DiscordApi.put(url, data, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to bulk overwrite global application commands. Response: #{response.body}")
+    response
   end
 
   def bulk_overwrite_guild_application_commands(guild_id, commands)
-    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands")
+    url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands"
     data = JSON.generate(commands)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.put(url, data, headers)
+    response = DiscordApi.put(url, data, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to bulk overwrite guild application commands in guild with ID #{guild_id}. " \
+                    "Response: #{response.body}")
+    response
   end
 
   def get_guild_application_command_permissions(guild_id)
-    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/permissions")
+    url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/permissions"
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to get guild application command permissions for guild with ID #{guild_id}. " \
+                    "Response: #{response.body}")
+    response
   end
 
   def get_application_command_permissions(guild_id, command_id)
-    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}/permissions")
+    url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}/permissions"
     headers = { 'Authorization': @authorization_header }
-    Net::HTTP.get(url, headers)
+    response = DiscordApi.get(url, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to get appliaction command permissions for command with ID #{command_id} in guild with ID " \
+                    "#{guild_id}. Response: #{response.body}")
+    response
   end
 
   def edit_application_command_permissions(guild_id, command_id, permissions)
-    url = URI("#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}/permissions")
+    url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}/permissions"
     data = JSON.generate(permissions)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    Net::HTTP.put(url, data, headers)
+    response = DiscordApi.put(url, data, headers)
+    return response unless response.status != 200
+
+    @logger.error("Failed to edit application command permissions for command with ID #{command_id} in guild with ID " \
+                    "#{guild_id}. Response: #{response.body}")
+    response
   end
 
   def connect_gateway(activities: nil, os: nil, browser: nil, device: nil, intents: nil, presence_since: nil,
@@ -346,7 +419,13 @@ class DiscordApi
       rescue_connection, sequence, resume_gateway_url, session_id = nil
       loop do
         url = if rescue_connection.nil?
-                "#{JSON.parse(Net::HTTP.get(URI("#{@base_url}/gateway")))['url']}/?v=#{@api_version}&encoding=json"
+                response = DiscordApi.get("#{@base_url}/gateway")
+                if response.status == 200
+                  "#{JSON.parse(response)['url']}/?v=#{@api_version}&encoding=json"
+                else
+                  @logger.fatal_error("Failed to get gateway URL. Response: #{response.body}")
+                  exit
+                end
               else
                 "#{rescue_connection[:resume_gateway_url]}/?v=#{@api_version}&encoding=json"
               end
@@ -595,7 +674,6 @@ class DiscordApi
     intents.reduce(0) { |acc, n| acc | n }
   end
 
-  # TODO: Transition from Net::HTTP to below wrapper methods
   def self.get(url, headers = nil)
     split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
     @logger.error("Empty/invalid URL provided: #{url}. Cannot perform GET request.") if split_url.empty?
@@ -632,6 +710,32 @@ class DiscordApi
       conn.post(path, data)
     else
       conn.post('', data)
+    end
+  end
+
+  def self.patch(url, data, headers = nil)
+    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
+    @logger.error("Empty/invalid URL provided: #{url}. Cannot perform PATCH request.") if split_url.empty?
+    host = split_url[0]
+    path = split_url[1] if split_url[1]
+    conn = Faraday.new(url: host, headers: headers)
+    if path
+      conn.patch(path, data)
+    else
+      conn.patch('', data)
+    end
+  end
+
+  def self.put(url, data, headers = nil)
+    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
+    @logger.error("Empty/invalid URL provided: #{url}. Cannot perform PUT request.") if split_url.empty?
+    host = split_url[0]
+    path = split_url[1] if split_url[1]
+    conn = Faraday.new(url: host, headers: headers)
+    if path
+      conn.put(path, data)
+    else
+      conn.put('', data)
     end
   end
 end
