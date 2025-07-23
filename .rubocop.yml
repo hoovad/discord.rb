@@ -2,3 +2,5 @@ Metrics:
   Enabled: false
 AllCops:
   NewCops: disable
+  Exclude:
+    - 'disrb.gemspec'

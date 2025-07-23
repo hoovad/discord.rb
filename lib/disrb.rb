@@ -6,10 +6,10 @@ require 'async'
 require 'async/http/endpoint'
 require 'async/websocket/client'
 require 'faraday'
-require_relative 'guild'
-require_relative 'logger'
-require_relative 'user'
-require_relative 'message'
+require 'disrb/guild'
+require 'disrb/logger'
+require 'disrb/user'
+require 'disrb/message'
 
 # TODO: If there is more than 1 optional parameter in a function, I should change it from setting the default value via
 # = to : so that the user can pass only the parameters they want to set
