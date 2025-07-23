@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name          = 'disrb'
-  s.version       = '0.0.1'
+  s.version       = '0.1.0'
   s.summary       = 'A Ruby library for interacting with the Discord API.'
   s.description   = 'Discord.rb (not to be confused with discordrb) is a Ruby library that allows you to interact' \
                     ' only with the Discord API. The library is still in development, but really simple tasks can be' \
@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.email         = 'hoovad@proton.me'
   s.files         = Dir['lib/**/*.rb', 'README.md', 'LICENSE']
   s.homepage      = 'https://codeberg.org/hoovad/discord.rb'
-  s.license       = 'EUPL-1.2'
+  s.license       = 'MIT'
   s.required_ruby_version = '>= 2.7.0'
   s.add_dependency 'async', '>= 2.26.0'
   s.add_dependency 'async-http', '>= 0.89.0'

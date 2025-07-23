@@ -8,3 +8,14 @@ steps:
     commands:
       - gem install rubocop
       - rubocop
+  - name: build
+    image: ruby:latest
+    commands:
+      - gem build disrb.gemspec
+  - name: push
+    image: ruby:latest
+    environment:
+      GEM_HOST_API_KEY:
+        from_secret: rubygems_api_key
+    commands:
+      - gem push *.gem
