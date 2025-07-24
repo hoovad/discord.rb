@@ -22,7 +22,7 @@ The test.rb file creates two commands "test" and "test2", that return "Hi" and "
 - [ ] Alpha release (v0.2.0)
   - [ ] Add support for all Discord API endpoints
   - [ ] Add support for all Discord Gateway events and properly handle the connection
-  - [ ] Documentation (v0.1.2)
+  - [ ] Documentation (v0.1.3)
   - [x] Transition to Faraday for HTTP requests (v0.1.1)
   - [x] Functions where all options are optional, check if atleast one is provided (v0.1.1.1)
   - [x] Prefer to use keyword arguments over positional arguments if there are more than 1 optional arguments (v0.1.1.1)

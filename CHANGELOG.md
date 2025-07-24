@@ -1,3 +1,7 @@
+# development
+
+- Change homepage in gemspec to point to the GitHub repository
+
 # Version 0.1.1.3 (2025-07-24)
 
 - Add rubocop to development dependencies (in gemspec)
