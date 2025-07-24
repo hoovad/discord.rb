@@ -1,8 +1,12 @@
+# Version 0.1.1.3 (2025-07-24)
+
+- Add rubocop to development dependencies (in gemspec)
+
 # Version 0.1.1.2 (2025-07-24)
 
 - Fix some problems with rubocop
 - Make the CI ignore rubocop failures so that the CI can still create a release
-- Add rubocop to the development dependencies
+- Add rubocop to development dependencies (in gemfile)
 
 # Version 0.1.1.1 (2025-07-24)
 
