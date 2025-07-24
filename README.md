@@ -2,7 +2,7 @@
 
 [Changelog](CHANGELOG.md) | [Licensed under the MIT License](LICENSE)
 
-![CI Pipeline](https://ci.codeberg.org/api/badges/14824/status.svg)
+![CI Pipeline](https://ci.codeberg.org/api/badges/14824/status.svg) [![Gem Version](https://badge.fury.io/rb/disrb.svg?icon=si%3Arubygems)](https://badge.fury.io/rb/disrb)
 
 W.I.P. Discord API wrapper written in Ruby for fun.
 
