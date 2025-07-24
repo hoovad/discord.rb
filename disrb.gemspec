@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.authors       = ['hoovad']
   s.email         = 'hoovad@proton.me'
   s.files         = Dir['lib/**/*.rb', 'README.md', 'LICENSE']
-  s.homepage      = 'https://codeberg.org/hoovad/discord.rb'
+  s.homepage      = 'https://github.com/hoovad/discord.rb'
   s.license       = 'MIT'
   s.required_ruby_version = '>= 2.7.0'
   s.add_dependency 'async', '>= 2.26.0'
