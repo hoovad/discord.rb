@@ -7,10 +7,11 @@ jobs:
   rubocop:
     runs-on: ubuntu-latest
     permissions:
+      checks: write
       contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Rubocop
-        uses: hoovad/rubocop-action@v0.0.1
+        uses: hoovad/rubocop-action@v0.0.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
