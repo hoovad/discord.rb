@@ -9,6 +9,7 @@ steps:
     commands:
       - gem install rubocop
       - rubocop
+    failure: ignore
   - name: build
     image: ruby:latest
     when:

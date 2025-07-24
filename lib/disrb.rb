@@ -173,7 +173,7 @@ class DiscordApi
   def edit_global_application_command(command_id, name: nil, name_localizations: nil, description: nil,
                                       description_localizations: nil, options: nil, default_member_permissions: nil,
                                       default_permission: nil, integration_types: nil, contexts: nil, nsfw: nil)
-    if args[1..-1].all?(&:nil?)
+    if args[1..].all?(&:nil?)
       @logger.warn("No modifications provided for global application command with ID #{command_id}. Skipping.")
       return nil
     end
@@ -201,7 +201,7 @@ class DiscordApi
   def edit_guild_application_command(guild_id, command_id, name: nil, name_localizations: nil, description: nil,
                                      description_localizations: nil, options: nil, default_member_permissions: nil,
                                      default_permission: nil, nsfw: nil)
-    if args[2..-1].all?(&:nil?)
+    if args[2..].all?(&:nil?)
       @logger.warn("No modifications provided for guild application command with command ID #{command_id}. Skipping.")
       return nil
     end

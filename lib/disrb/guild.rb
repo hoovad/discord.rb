@@ -159,7 +159,7 @@ class DiscordApi
   end
 
   def modify_guild_channel_positions(guild_id, channel_id, position: nil, lock_permissions: nil, parent_id: nil)
-    if args[2..-1].all?(&:nil?)
+    if args[2..].all?(&:nil?)
       @logger.warn("No modifications for guild channel positions with guild ID #{guild_id} and channel ID " \
                      "#{channel_id} provided. Skipping.")
       return nil
@@ -253,7 +253,7 @@ class DiscordApi
                           communication_disabled_until: nil, flags: nil, audit_reason: nil)
     if args[2..-2].all?(&:nil?)
       @logger.warn("No modifications for guild member with guild ID #{guild_id} and user ID #{user_id} provided. " \
-                     "Skipping.")
+                     'Skipping.')
       return nil
     end
     output = {}
@@ -496,7 +496,7 @@ class DiscordApi
                         unicode_emoji: nil, mentionable: nil, audit_reason: nil)
     if args[2..-2].all?(&:nil?)
       @logger.warn("No modifications for guild role with ID #{role_id} in guild with ID #{guild_id} provided. " \
-                     "Skipping.")
+                     'Skipping.')
       return nil
     end
     output = {}
@@ -709,7 +709,7 @@ class DiscordApi
                                   audit_reason: nil)
     if args[1..-2].all?(&:nil?)
       @logger.warn("No modifications for guild welcome screen with guild ID #{guild_id} provided. " \
-                     "Skipping.")
+                     'Skipping.')
       return nil
     end
     output = {}
@@ -741,7 +741,7 @@ class DiscordApi
                               audit_reason: nil)
     if args[1..-2].all?(&:nil?)
       @logger.warn("No modifications for guild onboarding with guild ID #{guild_id} provided. " \
-                     "Skipping.")
+                     'Skipping.')
       return nil
     end
     output = {}
@@ -761,9 +761,9 @@ class DiscordApi
   end
 
   def modify_guild_incident_actions(guild_id, invites_disabled_until: nil, dms_disabled_until: nil)
-    if args[1..-1].all?(&:nil?)
+    if args[1..].all?(&:nil?)
       @logger.warn("No modifications for guild incident actions with guild ID #{guild_id} provided. " \
-                     "Skipping.")
+                     'Skipping.')
       return nil
     end
     output = {}

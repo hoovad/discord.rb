@@ -27,7 +27,7 @@ class DiscordApi
 
   def modify_current_user(username: nil, avatar: nil, banner: nil)
     if args.all?(&:nil?)
-      @logger.warn("No modifications provided for current user. Skipping function.")
+      @logger.warn('No modifications provided for current user. Skipping function.')
       return nil
     end
     output = {}
