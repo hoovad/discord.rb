@@ -1,7 +1,7 @@
 # Version 0.1.1.2 (2025-07-24)
 
 - Fix some problems with rubocop
-- Make the CI ignore rubocop failures so that the CI can still create a releaseç
+- Make the CI ignore rubocop failures so that the CI can still create a release
 - Add rubocop to the development dependencies
 
 # Version 0.1.1.1 (2025-07-24)
