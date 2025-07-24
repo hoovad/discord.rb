@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name          = 'disrb'
-  s.version       = '0.1.1'
+  s.version       = '0.1.1.1'
   s.summary       = 'A Ruby library for interacting with the Discord API.'
   s.description   = 'Discord.rb (not to be confused with discordrb) is a Ruby library that allows you to interact' \
                     ' only with the Discord API. The library is still in development, but really simple tasks can be' \

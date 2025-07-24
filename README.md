@@ -1,5 +1,7 @@
 # discord.rb indev
 
+[Changelog](CHANGELOG.md) | [Licensed under the MIT License](LICENSE)
+
 ![CI Pipeline](https://ci.codeberg.org/api/badges/14824/status.svg)
 
 W.I.P. Discord API wrapper written in Ruby for fun.
@@ -22,8 +24,8 @@ The test.rb file creates two commands "test" and "test2", that return "Hi" and "
   - [ ] Add support for all Discord Gateway events and properly handle the connection
   - [ ] Documentation (v0.1.2)
   - [x] Transition to Faraday for HTTP requests (v0.1.1)
-  - [ ] Functions where all options are optional, check if atleast one is provided
-  - [ ] Prefer to use keyword arguments over positional arguments if there are more than 1 optional arguments
+  - [x] Functions where all options are optional, check if atleast one is provided (v0.1.1.1)
+  - [x] Prefer to use keyword arguments over positional arguments if there are more than 1 optional arguments (v0.1.1.1)
 - [ ] Beta release (v0.3.0)
   - [ ] Component support and builder
   - [ ] Sharding support

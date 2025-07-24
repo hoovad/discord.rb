@@ -1,3 +1,14 @@
+# Version 0.1.1.1 (2025-07-24)
+
+- Bugfixes
+- Make some functions use HandleQueryString where applicable
+- Changed "if var" to "unless var.nil?" for consistency
+- Functions where all options are optional, check if atleast one is provided
+  (keyword arguments over positional arguments if there are more than 1 optional arguments was already done)
+- add Gemfile.lock to .gitignore
+- since file structure changed, update require path in test.rb
+- add link to changelog and license in README.md
+
 # Version 0.1.1 (2025-07-23)
 
 - Fully migrate from Net::HTTP to Faraday for HTTP requests

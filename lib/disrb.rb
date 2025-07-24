@@ -103,7 +103,7 @@ class DiscordApi
     output[:description_localizations] = description_localizations unless description_localizations.nil?
     output[:options] = options unless options.nil?
     output[:default_permission] = default_permission unless default_permission.nil?
-    output[:type] = type unless default_permission.nil?
+    output[:type] = type unless type.nil?
     output[:nsfw] = nsfw unless nsfw.nil?
     output[:default_member_permissions] = default_member_permissions unless default_member_permissions.nil?
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands"
@@ -173,6 +173,10 @@ class DiscordApi
   def edit_global_application_command(command_id, name: nil, name_localizations: nil, description: nil,
                                       description_localizations: nil, options: nil, default_member_permissions: nil,
                                       default_permission: nil, integration_types: nil, contexts: nil, nsfw: nil)
+    if args[1..-1].all?(&:nil?)
+      @logger.warn("No modifications provided for global application command with ID #{command_id}. Skipping.")
+      return nil
+    end
     output = {}
     output[:name] = name
     output[:name_localizations] = name_localizations unless name_localizations.nil?
@@ -197,6 +201,10 @@ class DiscordApi
   def edit_guild_application_command(guild_id, command_id, name: nil, name_localizations: nil, description: nil,
                                      description_localizations: nil, options: nil, default_member_permissions: nil,
                                      default_permission: nil, nsfw: nil)
+    if args[2..-1].all?(&:nil?)
+      @logger.warn("No modifications provided for guild application command with command ID #{command_id}. Skipping.")
+      return nil
+    end
     output = {}
     output[:name] = name
     output[:name_localizations] = name_localizations unless name_localizations.nil?

@@ -11,19 +11,19 @@ class DiscordApi
       return
     end
     output = {}
-    output[:content] = content if content
-    output[:nonce] = nonce if nonce
-    output[:tts] = tts if tts
-    output[:embeds] = embeds if embeds
-    output[:allowed_mentions] = allowed_mentions if allowed_mentions
-    output[:message_reference] = message_reference if message_reference
-    output[:components] = components if components
-    output[:sticker_ids] = sticker_ids if sticker_ids
-    output[:files] = files if files
-    output[:attachments] = attachments if attachments
-    output[:flags] = flags if flags
-    output[:enforce_nonce] = enforce_nonce if enforce_nonce
-    output[:poll] = poll if poll
+    output[:content] = content unless content.nil?
+    output[:nonce] = nonce unless nonce.nil?
+    output[:tts] = tts unless tts.nil?
+    output[:embeds] = embeds unless embeds.nil?
+    output[:allowed_mentions] = allowed_mentions unless allowed_mentions.nil?
+    output[:message_reference] = message_reference unless message_reference.nil?
+    output[:components] = components unless components.nil?
+    output[:sticker_ids] = sticker_ids unless sticker_ids.nil?
+    output[:files] = files unless files.nil?
+    output[:attachments] = attachments unless attachments.nil?
+    output[:flags] = flags unless flags.nil?
+    output[:enforce_nonce] = enforce_nonce unless enforce_nonce.nil?
+    output[:poll] = poll unless poll.nil?
     url = "#{@base_url}/channels/#{channel_id}/messages"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }

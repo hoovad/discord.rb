@@ -33,11 +33,10 @@ class DiscordApi
   end
 
   def get_guild(guild_id, with_counts = nil)
-    url = if !with_counts.nil?
-            "#{@base_url}/guilds/#{guild_id}?with_counts=#{with_counts}"
-          else
-            "#{@base_url}/guilds/#{guild_id}"
-          end
+    query_string_hash = {}
+    query_string_hash[:with_counts] = with_counts unless with_counts.nil?
+    query_string = DiscordApi.handle_query_strings(query_string_hash)
+    url = "#{@base_url}/guilds/#{guild_id}#{query_string}"
     headers = { 'Authorization' => @authorization_header }
     response = DiscordApi.get(url, headers)
     return response unless response.status != 200
@@ -62,6 +61,10 @@ class DiscordApi
                    system_channel_flags: nil, rules_channel_id: nil, public_updates_channel_id: nil,
                    preferred_locale: nil, features: nil, description: nil, premium_progress_bar_enabled: nil,
                    safety_alerts_channel_id: nil, audit_reason: nil)
+    if args[1..-2].all?(&:nil?)
+      @logger.warn("No modifications for guild with ID #{guild_id} provided. Skipping.")
+      return nil
+    end
     output = {}
     output[:name] = name unless name.nil?
     unless region.nil?
@@ -156,6 +159,11 @@ class DiscordApi
   end
 
   def modify_guild_channel_positions(guild_id, channel_id, position: nil, lock_permissions: nil, parent_id: nil)
+    if args[2..-1].all?(&:nil?)
+      @logger.warn("No modifications for guild channel positions with guild ID #{guild_id} and channel ID " \
+                     "#{channel_id} provided. Skipping.")
+      return nil
+    end
     output = {}
     output[:id] = channel_id
     output[:position] = position unless position.nil?
@@ -243,6 +251,11 @@ class DiscordApi
 
   def modify_guild_member(guild_id, user_id, nick: nil, roles: nil, mute: nil, deaf: nil, channel_id: nil,
                           communication_disabled_until: nil, flags: nil, audit_reason: nil)
+    if args[2..-2].all?(&:nil?)
+      @logger.warn("No modifications for guild member with guild ID #{guild_id} and user ID #{user_id} provided. " \
+                     "Skipping.")
+      return nil
+    end
     output = {}
     output[:nick] = nick unless nick.nil?
     output[:roles] = roles unless roles.nil?
@@ -264,6 +277,10 @@ class DiscordApi
   end
 
   def modify_current_member(guild_id, nick: nil, audit_reason: nil)
+    if nick.nil?
+      @logger.warn("No modifications for current member in guild ID #{guild_id} provided. Skipping.")
+      return nil
+    end
     output = {}
     output[:nick] = nick unless nick.nil?
     url = "#{@base_url}/guilds/#{guild_id}/members/@me"
@@ -279,6 +296,10 @@ class DiscordApi
 
   def modify_current_user_nick(guild_id, nick: nil, audit_reason: nil)
     @logger.warn('The "Modify Current User Nick" endpoint has been deprecated and should not be used!')
+    if nick.nil?
+      @logger.warn("No modifications for current user nick in guild ID #{guild_id} provided. Skipping.")
+      return nil
+    end
     output = {}
     output[:nick] = nick unless nick.nil?
     url = "#{@base_url}/guilds/#{guild_id}/users/@me/nick"
@@ -453,6 +474,10 @@ class DiscordApi
   end
 
   def modify_guild_role_positions(guild_id, id, position: nil, audit_reason: nil)
+    if position.nil?
+      @logger.warn("No role positions provided for guild with ID #{guild_id}. Skipping function.")
+      return nil
+    end
     output = {}
     output[:id] = id
     output[:position] = position unless position.nil?
@@ -469,6 +494,11 @@ class DiscordApi
 
   def modify_guild_role(guild_id, role_id, name: nil, permissions: nil, color: nil, hoist: nil, icon: nil,
                         unicode_emoji: nil, mentionable: nil, audit_reason: nil)
+    if args[2..-2].all?(&:nil?)
+      @logger.warn("No modifications for guild role with ID #{role_id} in guild with ID #{guild_id} provided. " \
+                     "Skipping.")
+      return nil
+    end
     output = {}
     output[:name] = name unless name.nil?
     output[:permissions] = permissions unless permissions.nil?
@@ -677,6 +707,11 @@ class DiscordApi
 
   def modify_guild_welcome_screen(guild_id, enabled: nil, welcome_channels: nil, description: nil,
                                   audit_reason: nil)
+    if args[1..-2].all?(&:nil?)
+      @logger.warn("No modifications for guild welcome screen with guild ID #{guild_id} provided. " \
+                     "Skipping.")
+      return nil
+    end
     output = {}
     output[:enabled] = enabled unless enabled.nil?
     output[:welcome_channels] = welcome_channels unless welcome_channels.nil?
@@ -704,6 +739,11 @@ class DiscordApi
 
   def modify_guild_onboarding(guild_id, prompts: nil, default_channel_ids: nil, enabled: nil, mode: nil,
                               audit_reason: nil)
+    if args[1..-2].all?(&:nil?)
+      @logger.warn("No modifications for guild onboarding with guild ID #{guild_id} provided. " \
+                     "Skipping.")
+      return nil
+    end
     output = {}
     output[:prompts] = prompts unless prompts.nil?
     output[:default_channel_ids] = default_channel_ids unless default_channel_ids.nil?
@@ -721,6 +761,11 @@ class DiscordApi
   end
 
   def modify_guild_incident_actions(guild_id, invites_disabled_until: nil, dms_disabled_until: nil)
+    if args[1..-1].all?(&:nil?)
+      @logger.warn("No modifications for guild incident actions with guild ID #{guild_id} provided. " \
+                     "Skipping.")
+      return nil
+    end
     output = {}
     if invites_disabled_until == false
       output[:invites_disabled_until] = nil

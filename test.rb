@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative('main')
+require_relative('lib/disrb')
 require_relative('env')
 VERBOSITY_LEVEL = nil if defined?(VERBOSITY_LEVEL) == false
 discordapi = DiscordApi.new(TOKEN_TYPE, TOKEN, VERBOSITY_LEVEL)
