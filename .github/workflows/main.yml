@@ -1,13 +1,27 @@
-name: Ruby Gem
+name: main
 
 on:
   push:
+    branches:
+      - '**'
     tags:
       - 'v*'
 
 jobs:
+  rubocop:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rubocop
+        uses: hoovad/rubocop-action@v0.0.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
   build:
     name: Build + Publish
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -42,3 +56,8 @@ jobs:
           gem push *.gem
         env:
           GEM_HOST_API_KEY: "${{secrets.RUBYGEMS_AUTH_TOKEN}}"
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.gem
