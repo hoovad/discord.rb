@@ -1,4 +1,4 @@
-# development
+# Version 0.1.2 (2025-07-25)
 
 - Change homepage in gemspec to point to the GitHub repository
 - Add full support for the messages resource
