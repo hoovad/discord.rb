@@ -1,6 +1,8 @@
 # development
 
 - Change homepage in gemspec to point to the GitHub repository
+- Add full support for the messages resource
+- Bump Rubocop CI version to 0.0.4
 
 # Version 0.1.1.3 (2025-07-24)
 
