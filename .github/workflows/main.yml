@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Rubocop
-        uses: hoovad/rubocop-action@v0.0.3
+        uses: hoovad/rubocop-action@v0.0.4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
   build:
