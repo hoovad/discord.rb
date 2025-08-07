@@ -1,8 +1,11 @@
 # discord.rb indev
 
-[Changelog](CHANGELOG.md) | [Licensed under the MIT License](LICENSE)
+[![Licensed under the MIT license](https://img.shields.io/github/license/hoovad/discord.rb)](LICENSE)
+[![Gem Version](https://img.shields.io/gem/v/disrb?logo=ruby&color=green)](https://rubygems.org/gems/disrb)
+![project status: active](https://img.shields.io/badge/project_status-active-active)
+[![main](https://github.com/hoovad/discord.rb/actions/workflows/main.yml/badge.svg)](https://github.com/hoovad/discord.rb/actions/workflows/main.yml)
 
-[![main](https://github.com/hoovad/discord.rb/actions/workflows/main.yml/badge.svg)](https://github.com/hoovad/discord.rb/actions/workflows/main.yml) [![Gem Version](https://badge.fury.io/rb/disrb.svg?icon=si%3Arubygems)](https://badge.fury.io/rb/disrb)
+[Changelog](CHANGELOG.md) | [Documentation](https://www.rubydoc.info/gems/disrb/) (currently in development)
 
 W.I.P. Discord API wrapper written in Ruby for fun.
 
@@ -20,17 +23,17 @@ The test.rb file creates two commands "test" and "test2", that return "Hi" and "
     - [x] Basic gateway support
     - [x] RubyGem building and publishing
 - [ ] Alpha release (v0.2.0)
-  - [ ] Add support for all Discord API endpoints
-  - [ ] Add support for all Discord Gateway events and properly handle the connection
-  - [ ] Documentation (v0.1.3)
-  - [x] Transition to Faraday for HTTP requests (v0.1.1)
-  - [x] Functions where all options are optional, check if atleast one is provided (v0.1.1.1)
-  - [x] Prefer to use keyword arguments over positional arguments if there are more than 1 optional arguments (v0.1.1.1)
+    - [ ] Add support for all Discord API endpoints
+    - [ ] Add support for all Discord Gateway events and properly handle the connection
+    - [ ] Documentation (v0.1.3)
+    - [x] Transition to Faraday for HTTP requests (v0.1.1)
+    - [x] Functions where all options are optional, check if atleast one is provided (v0.1.1.1)
+    - [x] Prefer to use keyword arguments over positional arguments if there are more than 1 optional arguments (v0.1.1.1)
 - [ ] Beta release (v0.3.0)
-  - [ ] Component support and builder
-  - [ ] Sharding support
-  - [ ] Rate limit handling
-  - [ ] Voice support
-  - [ ] Add parameter validation
+    - [ ] Component support and builder
+    - [ ] Sharding support
+    - [ ] Rate limit handling
+    - [ ] Voice support
+    - [ ] Add parameter validation
 - [ ] Stable release (v1.0.0)
-  - [ ] Bugfixes, consistency and improvements
+    - [ ] Bugfixes, consistency and improvements
