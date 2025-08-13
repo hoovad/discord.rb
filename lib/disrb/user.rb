@@ -26,10 +26,6 @@ class DiscordApi
   end
 
   def modify_current_user(username: nil, avatar: nil, banner: nil)
-    if args.all?(&:nil?)
-      @logger.warn('No modifications provided for current user. Skipping function.')
-      return nil
-    end
     output = {}
     output[:username] = username unless username.nil?
     output[:avatar] = avatar unless avatar.nil?
