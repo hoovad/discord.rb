@@ -23,7 +23,7 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages#{query_string}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to get messages from channel with ID #{channel_id}. Response: #{response.body}")
     response
@@ -33,7 +33,7 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to get message with ID #{message_id} from channel with ID #{channel_id}. " \
                     "Response: #{response.body}")
@@ -65,7 +65,7 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     response = DiscordApi.post(url, data, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to create message in channel #{channel_id}. Response: #{response.body}")
     response
@@ -75,7 +75,7 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/crosspost"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.post(url, nil, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to crosspost message with ID #{message_id} in channel with ID #{channel_id}. " \
                     "Response: #{response.body}")
@@ -86,7 +86,7 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji_id}/@me"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.put(url, nil, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to create reaction with emoji ID #{emoji_id} in channel with ID #{channel_id} " \
                     "for message with ID #{message_id}. Response: #{response.body}")
@@ -97,7 +97,7 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji_id}/@me"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.delete(url, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to delete own reaction with emoji ID #{emoji_id} in channel with ID #{channel_id} " \
                     "for message with ID #{message_id}. Response: #{response.body}")
@@ -108,7 +108,7 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji_id}/#{user_id}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.delete(url, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to delete user reaction with emoji ID #{emoji_id} in channel with ID #{channel_id} " \
                     "for message with ID #{message_id} by user with ID #{user_id}. Response: #{response.body}")
@@ -124,7 +124,7 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji_id}#{query_string}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to get reactions for emoji with ID #{emoji_id} in channel with ID #{channel_id} " \
                     "for message with ID #{message_id}. Response: #{response.body}")
@@ -135,7 +135,7 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.delete(url, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to delete all reactions in channel with ID #{channel_id} for message with ID #{message_id}" \
                     ". Response: #{response.body}")
@@ -145,7 +145,7 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji_id}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.delete(url, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to delete all reactions for emoji with ID #{emoji_id} in channel with ID #{channel_id} for " \
                     "message with ID #{message_id}. Response: #{response.body}")
@@ -171,7 +171,7 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     response = DiscordApi.patch(url, data, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to edit message with ID #{message_id} in channel with ID #{channel_id}. " \
                     "Response: #{response.body}")
@@ -183,7 +183,7 @@ class DiscordApi
     headers = { 'Authorization': @authorization_header }
     headers[:'X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
     response = DiscordApi.delete(url, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to delete message with ID #{message_id} in channel with ID #{channel_id}. " \
                     "Response: #{response.body}")
@@ -197,7 +197,7 @@ class DiscordApi
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers[:'X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
     response = DiscordApi.post(url, data, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to bulk delete messages in channel with ID #{channel_id}. Response: #{response.body}")
     response
@@ -211,7 +211,7 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/pins#{query_string}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to get pinned messages in channel with ID #{channel_id}. Response: #{response.body}")
     response
@@ -222,7 +222,7 @@ class DiscordApi
     headers = { 'Authorization': @authorization_header }
     headers[:'X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
     response = DiscordApi.put(url, nil, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to pin message with ID #{message_id} in channel with ID #{channel_id}. " \
                     "Response: #{response.body}")
@@ -234,7 +234,7 @@ class DiscordApi
     headers = { 'Authorization': @authorization_header }
     headers[:'X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
     response = DiscordApi.delete(url, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to unpin message with ID #{message_id} in channel with ID #{channel_id}. " \
                     "Response: #{response.body}")

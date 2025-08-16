@@ -110,7 +110,7 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     response = DiscordApi.post(url, data, headers)
-    return response unless response.status != 201 || response.status != 200
+    return response if response.status == 201 || response.status == 200
 
     @logger.error("Failed to create guild application command in guild with ID #{guild_id}. Response: #{response.body}")
     response
@@ -150,7 +150,7 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     response = DiscordApi.post(url, data, headers)
-    return response unless response.status != 201 || response.status != 200
+    return response if response.status == 201 || response.status == 200
 
     @logger.error("Failed to create global application command. Response: #{response.body}")
     response
@@ -192,7 +192,7 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     response = DiscordApi.patch(url, data, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to edit global application command with ID #{command_id}. Response: #{response.body}")
     response
@@ -218,7 +218,7 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     response = DiscordApi.patch(url, data, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to edit guild application command with ID #{command_id}. Response: #{response.body}")
     response
@@ -228,7 +228,7 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.delete(url, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to delete global application command with ID #{command_id}. Response: #{response.body}")
     response
@@ -238,7 +238,7 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.delete(url, headers)
-    return response unless response.status != 204
+    return response if response.status == 204
 
     @logger.error("Failed to delete guild application command with ID #{command_id} in guild with ID #{guild_id}. " \
                   "Response: #{response.body}")
@@ -251,7 +251,7 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands#{query_string}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to get guild application commands for guild with ID #{guild_id}. Response: #{response.body}")
     response
@@ -264,7 +264,7 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/commands#{query_string}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to get global application commands. Response: #{response.body}")
     response
@@ -274,7 +274,7 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to get global application command with ID #{command_id}. Response: #{response.body}")
     response
@@ -284,7 +284,7 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to get guild application command with ID #{command_id}. Response: #{response.body}")
     response
@@ -295,7 +295,7 @@ class DiscordApi
     data = JSON.generate(commands)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     response = DiscordApi.put(url, data, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to bulk overwrite global application commands. Response: #{response.body}")
     response
@@ -306,7 +306,7 @@ class DiscordApi
     data = JSON.generate(commands)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     response = DiscordApi.put(url, data, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to bulk overwrite guild application commands in guild with ID #{guild_id}. " \
                     "Response: #{response.body}")
@@ -317,7 +317,7 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/permissions"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to get guild application command permissions for guild with ID #{guild_id}. " \
                     "Response: #{response.body}")
@@ -328,7 +328,7 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}/permissions"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to get appliaction command permissions for command with ID #{command_id} in guild with ID " \
                     "#{guild_id}. Response: #{response.body}")
@@ -340,7 +340,7 @@ class DiscordApi
     data = JSON.generate(permissions)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     response = DiscordApi.put(url, data, headers)
-    return response unless response.status != 200
+    return response if response.status == 200
 
     @logger.error("Failed to edit application command permissions for command with ID #{command_id} in guild with ID " \
                     "#{guild_id}. Response: #{response.body}")
