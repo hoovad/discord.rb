@@ -429,7 +429,7 @@ class DiscordApi
         url = if rescue_connection.nil?
                 response = DiscordApi.get("#{@base_url}/gateway")
                 if response.status == 200
-                  "#{JSON.parse(response)['url']}/?v=#{@api_version}&encoding=json"
+                  "#{JSON.parse(response.body)['url']}/?v=#{@api_version}&encoding=json"
                 else
                   @logger.fatal_error("Failed to get gateway URL. Response: #{response.body}")
                   exit
