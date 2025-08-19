@@ -4,3 +4,5 @@ AllCops:
   NewCops: disable
   Exclude:
     - 'disrb.gemspec'
+Style/MultipleComparison:
+  Enabled: false

@@ -1,3 +1,12 @@
+# Version 0.1.2.2 (2025-08-17)
+
+- Fix a bug where the function wouldn't return even if the status code was the expected one for success
+- (and disable Style/MultipleComparison in .rubocop.yml)
+
+# Version 0.1.2.1 (2025-08-17)
+
+- Fix a bug where connecting to the gateway would always fail
+
 # Version 0.1.2 (2025-07-25)
 
 - Change homepage in gemspec to point to the GitHub repository
