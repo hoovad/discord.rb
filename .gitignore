@@ -2,3 +2,5 @@ env.rb
 .idea
 *.gem
 Gemfile.lock
+.yardoc
+doc

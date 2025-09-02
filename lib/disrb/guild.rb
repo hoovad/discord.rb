@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-# DiscordApi
-# The class that contains everything that interacts with the Discord API.
+# Class that contains functions that allow interacting with the Discord API.
 class DiscordApi
   def create_guild(name, region: nil, icon: nil, verification_level: nil, default_message_notifications: nil,
                    explicit_content_filter: nil, roles: nil, channels: nil, afk_channel_id: nil, afk_timeout: nil,

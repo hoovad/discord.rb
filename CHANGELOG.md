@@ -1,3 +1,32 @@
+# development
+
+- Add documentation
+- Lots of bugfixes and improvements
+- Add replacement/deprecation warnings to parameters in create_guild_application_command and create_global_application_command
+- Fix some formatting issues in the README.md with YARD
+- Add .yardoc and doc folders to .gitignore
+- Add a missing parameter in create_global_application_command
+- Remove unnecessary double-empty check in DiscordApi#modify_current_user
+- Fix bug where an Array in a String has been treated like an Array in DiscordApi#get_current_user_guilds, and also make sure that the response code is 200 before trying to parse the response
+- Add missing implementation for https://discord.com/developers/docs/resources/user#get-current-user-guild-member
+- Add information on how to use Faraday::Response objects and notice to read linked Discord documentation in the README.md
+- Trim down and make logger.rb code more modular
+- The payload_json parameter in DiscordApi#edit_message is only to be included in multipart/form-data requests, not JSON, so we remove it
+- Rework the gateway connection reconnect code a bit
+- Rework test.rb for the new code and also fix some bugs
+
+## Breaking changes
+
+- Rename emoji_id parameters to emoji in all functions related to the Message resource
+- Description is actually a required parameter in create_guild_application_command and create_global_application_command and also affects create_guild_application_commands and create_global_application_commands
+- Call the block in DiscordApi#connect_gateway on every payload, not just when an interaction is created and add support
+  for some other opcodes
+- Fixes where single splat operators didn't play nicely with keyword arguments (in DiscordApi#create_guild_application_commands, DiscordApi#create_global_application_commands)
+- In mass-create application command functions, make it so that it returns the response of each request as an array, not just the last request's response
+- Move DiscordApi.handle_snowflake to a separate class and slightly change usage for better documentation
+- Comment out files/_files parameter in the relevant functions due to uploading files not being implemented yet
+  (also skip the relevant functions if only the files parameter is provided)
+
 # Version 0.1.2.2 (2025-08-17)
 
 - Fix a bug where the function wouldn't return even if the status code was the expected one for success

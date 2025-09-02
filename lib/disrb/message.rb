@@ -81,10 +81,10 @@ class DiscordApi
   # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if none of
   #   content, embeds, sticker_ids, components or poll were provided.
   def create_message(channel_id, content: nil, nonce: nil, tts: nil, embeds: nil, allowed_mentions: nil,
-                     message_reference: nil, components: nil, sticker_ids: nil, files: nil, attachments: nil,
+                     message_reference: nil, components: nil, sticker_ids: nil, _files: nil, attachments: nil,
                      flags: nil, enforce_nonce: nil, poll: nil)
-    if content.nil? && embeds.nil? && sticker_ids.nil? && components.nil? && files.nil? && poll.nil?
-      @logger.warn('No content, embeds, sticker ids, components, files or poll provided. Skipping function.')
+    if content.nil? && embeds.nil? && sticker_ids.nil? && components.nil? && poll.nil?
+      @logger.warn('No content, embeds, sticker_ids, components or poll provided. Skipping function.')
       return
     end
     output = {}
@@ -96,7 +96,7 @@ class DiscordApi
     output[:message_reference] = message_reference unless message_reference.nil?
     output[:components] = components unless components.nil?
     output[:sticker_ids] = sticker_ids unless sticker_ids.nil?
-    output[:files] = files unless files.nil?
+    # output[:files] = files unless files.nil?
     output[:attachments] = attachments unless attachments.nil?
     output[:flags] = flags unless flags.nil?
     output[:enforce_nonce] = enforce_nonce unless enforce_nonce.nil?
@@ -127,42 +127,40 @@ class DiscordApi
     response
   end
 
-  def create_reaction(channel_id, message_id, emoji_id)
-    url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji_id}/@me"
   # Create a reaction for the specified message. Returns no content on success.
   # See https://discord.com/developers/docs/resources/message#create-reaction
   # @param channel_id [String] The ID of the channel the message is located in
   # @param message_id [String] The ID of the message to create the reaction for
   # @param emoji [String] URL encoded emoji to react with, or name:id format for custom emojis
   # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
+  def create_reaction(channel_id, message_id, emoji)
+    url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji}/@me"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.put(url, nil, headers)
     return response if response.status == 204
 
-    @logger.error("Failed to create reaction with emoji ID #{emoji_id} in channel with ID #{channel_id} " \
+    @logger.error("Failed to create reaction with emoji ID #{emoji} in channel with ID #{channel_id} " \
                     "for message with ID #{message_id}. Response: #{response.body}")
     response
   end
 
-  def delete_own_reaction(channel_id, message_id, emoji_id)
-    url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji_id}/@me"
   # Deletes a reaction with the specified emoji for the current user in the specified message. Returns no content on
   # success. See https://discord.com/developers/docs/resources/message#delete-own-reaction
   # @param channel_id [String] The ID of the channel the message is located in
   # @param message_id [String] The ID of the message to delete the reaction for
   # @param emoji [String] URL encoded emoji to delete, or name:id format for custom emojis
   # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
+  def delete_own_reaction(channel_id, message_id, emoji)
+    url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji}/@me"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.delete(url, headers)
     return response if response.status == 204
 
-    @logger.error("Failed to delete own reaction with emoji ID #{emoji_id} in channel with ID #{channel_id} " \
+    @logger.error("Failed to delete own reaction with emoji ID #{emoji} in channel with ID #{channel_id} " \
                     "for message with ID #{message_id}. Response: #{response.body}")
     response
   end
 
-  def delete_user_reaction(channel_id, message_id, emoji_id, user_id)
-    url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji_id}/#{user_id}"
   # Deletes a reaction with the specified emoji for a user in the specified message. Returns no content on success.
   # See https://discord.com/developers/docs/resources/message#delete-user-reaction
   # @param channel_id [String] The ID of the channel the message is located in
@@ -170,16 +168,17 @@ class DiscordApi
   # @param emoji [String] URL encoded emoji to delete, or name:id format for custom emojis
   # @param user_id [String] The ID of the user to delete the reaction for
   # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
+  def delete_user_reaction(channel_id, message_id, emoji, user_id)
+    url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji}/#{user_id}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.delete(url, headers)
     return response if response.status == 204
 
-    @logger.error("Failed to delete user reaction with emoji ID #{emoji_id} in channel with ID #{channel_id} " \
+    @logger.error("Failed to delete user reaction with emoji ID #{emoji} in channel with ID #{channel_id} " \
                     "for message with ID #{message_id} by user with ID #{user_id}. Response: #{response.body}")
     response
   end
 
-  def get_reactions(channel_id, message_id, emoji_id, type: nil, after: nil, limit: nil)
   # Gets a list of users that reacted with the specified emoji to the specified message. Returns an array of user
   # objects on success. See https://discord.com/developers/docs/resources/message#get-reactions
   # @param channel_id [String] The ID of the channel the message is located in
@@ -189,17 +188,18 @@ class DiscordApi
   # @param after [String, nil] Get users after this user ID
   # @param limit [Integer, nil] Maximum number of users to return (1-100).
   # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
+  def get_reactions(channel_id, message_id, emoji, type: nil, after: nil, limit: nil)
     query_string_hash = {}
     query_string_hash[:type] = type unless type.nil?
     query_string_hash[:after] = after unless after.nil?
     query_string_hash[:limit] = limit unless limit.nil?
     query_string = DiscordApi.handle_query_strings(query_string_hash)
-    url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji_id}#{query_string}"
+    url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji}#{query_string}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
     return response if response.status == 200
 
-    @logger.error("Failed to get reactions for emoji with ID #{emoji_id} in channel with ID #{channel_id} " \
+    @logger.error("Failed to get reactions for emoji with ID #{emoji} in channel with ID #{channel_id} " \
                     "for message with ID #{message_id}. Response: #{response.body}")
     response
   end
@@ -219,19 +219,19 @@ class DiscordApi
                     ". Response: #{response.body}")
   end
 
-  def delete_all_reactions_for_emoji(channel_id, message_id, emoji_id)
-    url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji_id}"
   # Deletes all reactions with the specified emoji on a message. Returns no content on success.
   # See https://discord.com/developers/docs/resources/message#delete-all-reactions-for-emoji
   # @param channel_id [String] The ID of the channel the message is located in
   # @param message_id [String] The ID of the message to delete reactions for
   # @param emoji [String] URL encoded emoji to delete, or name:id format for custom emojis
   # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
+  def delete_all_reactions_for_emoji(channel_id, message_id, emoji)
+    url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.delete(url, headers)
     return response if response.status == 204
 
-    @logger.error("Failed to delete all reactions for emoji with ID #{emoji_id} in channel with ID #{channel_id} for " \
+    @logger.error("Failed to delete all reactions for emoji with ID #{emoji} in channel with ID #{channel_id} for " \
                     "message with ID #{message_id}. Response: #{response.body}")
   end
 
@@ -253,11 +253,11 @@ class DiscordApi
   # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if no
   #  modifications were provided.
   def edit_message(channel_id, message_id, content: nil, embeds: nil, flags: nil, allowed_mentions: nil,
-                   components: nil, files: nil, payload_json: nil, attachments: nil)
-    if args[2..].all?(&:nil?)
+                   components: nil, files: nil, attachments: nil)
+    if args[2..].all?(&:nil?) || (args[2..].delete(:files).all?(&:nil?) && !files.nil?)
       @logger.warn("No modifications provided for message with ID #{message_id} in channel with ID #{channel_id}. " \
-                     'Skipping function.')
-      return nil
+                     'The files parameter is WIP. Skipping function.')
+      return
     end
     output = {}
     output[:content] = content unless content.nil?
@@ -265,8 +265,7 @@ class DiscordApi
     output[:flags] = flags unless flags.nil?
     output[:allowed_mentions] = allowed_mentions unless allowed_mentions.nil?
     output[:components] = components unless components.nil?
-    output[:files] = files unless files.nil?
-    output[:payload_json] = payload_json unless payload_json.nil?
+    # output[:files] = files unless files.nil?
     output[:attachments] = attachments unless attachments.nil?
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}"
     data = JSON.generate(output)

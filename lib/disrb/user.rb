@@ -74,7 +74,7 @@ class DiscordApi
     url = "#{@base_url}/users/@me/guilds#{query_string}"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
-    if @authorization_token_type == 'Bot' && response.body.count == 200
+    if response.status == 200 && @authorization_token_type == 'Bot' && JSON.parse(response.body).count == 200
       @logger.warn('A bot can be in more than 200 guilds, however 200 guilds were returned.' \
                     'Discord API doesn\'t allow you to fetch more than 200 guilds. Some guilds might not be listed.')
       return response

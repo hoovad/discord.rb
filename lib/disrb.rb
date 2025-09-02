@@ -5,24 +5,76 @@ require 'async'
 require 'async/http/endpoint'
 require 'async/websocket/client'
 require 'faraday'
-require 'disrb/guild'
-require 'disrb/logger'
-require 'disrb/user'
-require 'disrb/message'
+require_relative 'disrb/guild'
+require_relative 'disrb/logger'
+require_relative 'disrb/user'
+require_relative 'disrb/message'
 
-# DiscordApi
-# The class that contains everything that interacts with the Discord API.
+# Contains functions related to Discord snowflakes.
+class Snowflake
+  # @!attribute [r] snowflake
+  #  @return [String] 64-bit binary representation of the snowflake as a string
+  # @!attribute [r] discord_epoch_timestamp
+  #  @return [String] binary representation of the discord epoch timestamp
+  #   (milliseconds since the first second of 2015).
+  # @!attribute [r] internal_worker_id
+  #  @return [String] Internal worker ID.
+  # @!attribute [r] internal_process_id
+  #  @return [String] Internal process ID.
+  # @!attribute [r] gen_id_on_process
+  #  @return [String] Nº of the ID generated on the process. This is incremented every time a new snowflake is generated
+  #   on the same process.
+  # @!attribute [r] unix_timestamp
+  #  @return [Integer] Unix timestamp of the snowflake in milliseconds.
+  # @!attribute [r] timestamp
+  #  @return [Time] Timestamp of the snowflake in UTC as a Time object.
+  attr_accessor(:snowflake, :discord_epoch_timestamp, :internal_worker_id, :internal_process_id, :gen_id_on_process,
+                :unix_timestamp, :timestamp)
+
+  # Creates a new Snowflake instance.
+  # @param snowflake [Integer] The snowflake to be used.
+  # @return [Snowflake] Snowflake instance.
+  def initialize(snowflake)
+    @snowflake = snowflake.to_s(2).rjust(64, '0')
+    @discord_epoch_timestamp = snowflake[0..41]
+    @internal_worker_id = snowflake[42..46]
+    @internal_process_id = snowflake[47..51]
+    @gen_id_on_process = snowflake[52..64]
+    @unix_timestamp = snowflake[0..41].to_i(2) + 1_420_070_400_000
+    @timestamp = Time.at((snowflake[0..41].to_i(2) + 1_420_070_400_000) / 1000).utc
+  end
+end
+
+# Class that contains functions that allow interacting with the Discord API.
+# @version 0.1.2.2
 class DiscordApi
-  attr_accessor(:base_url, :authorization_header, :application_id, :interaction_created, :interaction, :logger)
+  # @!attribute [r] base_url
+  #   @return [String] the base URL that is used to access the Discord API. ex: "https://discord.com/api/v10"
+  # @!attribute [r] authorization_header
+  #   @return [String] the authorization header that is used to authenticate requests to the Discord API.
+  # @!attribute [r] application_id
+  #   @return [Integer] the application ID of the bot that has been assigned to the provided authorization token.
+  attr_accessor(:base_url, :authorization_header, :application_id, :logger)
 
+  # Creates a new DiscordApi instance. (required to use most functions)
+  #
+  # @param authorization_token_type [String] The type of authorization token provided by Discord, 'Bot' or 'Bearer'.
+  # @param authorization_token [String] The value of the authorization token provided by Discord.
+  # @param verbosity_level [String, Integer, nil] The verbosity level of the logger.
+  # Set verbosity_level to:
+  # - 'all' or 5 to log all of the below plus debug messages
+  # - 'info', 4 or nil to log all of the below plus info messages [DEFAULT]
+  # - 'warning' or 3 to log all of the below plus warning messages
+  # - 'error' or 2 to log fatal errors and error messages
+  # - 'fatal_error' or 1 to log only fatal errors
+  # - 'none' or 0 for no logging
+  # @return [DiscordApi] DiscordApi instance.
   def initialize(authorization_token_type, authorization_token, verbosity_level = nil)
     @api_version = '10'
     @base_url = "https://discord.com/api/v#{@api_version}"
     @authorization_token_type = authorization_token_type
     @authorization_token = authorization_token
     @authorization_header = "#{authorization_token_type} #{authorization_token}"
-    @interaction_created = false
-    @interaction = {}
     if verbosity_level.nil?
       @verbosity_level = 4
     elsif verbosity_level.is_a?(String)
@@ -66,6 +118,12 @@ class DiscordApi
     end
   end
 
+  # Converts a hash into a valid query string.
+  # @example Convert a hash into a query string
+  #   DiscordApi.handle_query_strings({'key1' => 'value1', 'key2' => 'value2'}) #=> "?key1=value1&key2=value2"
+  # If the hash is empty, it returns an empty string.
+  # @param query_string_hash [Hash] The hash to convert into a query string.
+  # @return [String] The query string.
   def self.handle_query_strings(query_string_hash)
     query_string_array = []
     query_string_hash.each do |key, value|
@@ -81,28 +139,35 @@ class DiscordApi
     query_string_array.join
   end
 
-  def self.handle_snowflake(snowflake)
-    snowflake = snowflake.to_s(2).rjust(64, '0')
-    {
-      discord_epoch_timestamp: snowflake[0..41],
-      internal_worker_id: snowflake[42..46],
-      internal_process_id: snowflake[47..51],
-      gen_id_on_process: snowflake[52..64],
-      unix_timestamp: snowflake[0..41].to_i(2) + 1_420_070_400_000,
-      timestamp: Time.at((snowflake[0..41].to_i(2) + 1_420_070_400_000) / 1000).utc
-    }
-  end
-
-  def create_guild_application_command(guild_id, name, name_localizations: nil, description: nil,
+  # Creates an application command specifically for one guild.
+  # See https://discord.com/developers/docs/interactions/application-commands#create-guild-application-command
+  # @param guild_id [Integer] The ID of the guild where the command will be created.
+  # @param name [String] The name of the command.
+  # @param name_localizations [Hash, nil] Localized names for the command.
+  # @param description [String, nil] The description of the command.
+  # @param description_localizations [Hash, nil] Localized descriptions for the command.
+  # @param options [Array, nil] Options for the command.
+  # @param default_member_permissions [String, nil] Sets the default permission(s) that members need to run the command.
+  #   (must be set to a bitwise permission flag as a string)
+  # @param default_permission [TrueClass, FalseClass, nil] (replaced by default_member_permissions) Whether the command
+  #   is enabled by default when the app is added to a guild.
+  # @param type [Integer, nil] The type of the command.
+  # @param nsfw [TrueClass, FalseClass, nil] Whether the command is NSFW.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
+  def create_guild_application_command(guild_id, name, description, name_localizations: nil,
                                        description_localizations: nil, options: nil, default_member_permissions: nil,
                                        default_permission: nil, type: nil, nsfw: nil)
     output = {}
     output[:name] = name
+    output[:description] = description
     output[:name_localizations] = name_localizations unless name_localizations.nil?
-    output[:description] = description unless description.nil?
     output[:description_localizations] = description_localizations unless description_localizations.nil?
     output[:options] = options unless options.nil?
-    output[:default_permission] = default_permission unless default_permission.nil?
+    unless default_permission.nil?
+      @logger.warn('The "default_permission" parameter has been replaced by "default_member_permissions" ' \
+                     'and will be deprecated in the future.')
+      output[:default_permission] = default_permission
+    end
     output[:type] = type unless type.nil?
     output[:nsfw] = nsfw unless nsfw.nil?
     output[:default_member_permissions] = default_member_permissions unless default_member_permissions.nil?
@@ -116,11 +181,19 @@ class DiscordApi
     response
   end
 
+  # Mass-creates application commands for guild(s).
+  # @param application_commands_array [Array] An array of arrays, where the first three elements (of the inner array)
+  #   are the values for for the first three parameters (which are required) in the create_guild_application_command
+  #   method in order. The fourth element is a Hash that contains the rest of the parameters for the command, the key
+  #   must be the name of  the parameter as a symbol (e.g. :description, :options, etc.) and the value must be the value
+  #    for that parameter.
+  # @return [Array] An array of Faraday::Response objects, one for each command creation request.
   def create_guild_application_commands(application_commands_array)
+    response = []
     if application_commands_array.is_a?(Array)
       application_commands_array.each do |parameter_array|
         if parameter_array.is_a?(Array)
-          create_guild_application_command(*parameter_array)
+          response << create_guild_application_command(*parameter_array[0..2], **parameter_array[3] || {})
         else
           @logger.error("Invalid parameter array: #{parameter_array}. Expected an array of parameters.")
         end
@@ -128,22 +201,49 @@ class DiscordApi
     else
       @logger.error("Invalid application commands array: #{application_commands_array}. Expected an array of arrays.")
     end
+    response
   end
 
-  def create_global_application_command(name, name_localizations: nil, description: nil,
+  # Creates an application command globally.
+  # See https://discord.com/developers/docs/interactions/application-commands#create-global-application-command
+  # @param name [String] The name of the command.
+  # @param description [String] The description of the command.
+  # @param name_localizations [Hash, nil] Localized names for the command.
+  # @param description_localizations [Hash, nil] Localized descriptions for the command.
+  # @param options [Array, nil] Options for the command.
+  # @param default_member_permissions [String, nil] Sets the default permission(s) that members need to run the command.
+  #   (must be set to a bitwise permission flag as a string)
+  # @param dm_permission [TrueClass, FalseClass, nil] (deprecated, use contexts instead) Whether the command is
+  #   available in DMs.
+  # @param default_permission [TrueClass, FalseClass, nil] (replaced by default_member_permissions) Whether the command
+  #   is enabled by default when the app is added to a guild.
+  # @param integration_types [Array, nil] Installation context(s) where the command is available.
+  # @param contexts [Array, nil] Interaction context(s) where the command can be used
+  # @param type [Integer, nil] The type of the command.
+  # @param nsfw [TrueClass, FalseClass, nil] Whether the command is NSFW.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
+  def create_global_application_command(name, description, name_localizations: nil,
                                         description_localizations: nil, options: nil,
-                                        default_member_permissions: nil, default_permission: nil,
+                                        default_member_permissions: nil, dm_permission: nil, default_permission: nil,
                                         integration_types: nil, contexts: nil, type: nil, nsfw: nil)
     output = {}
     output[:name] = name
+    output[:description] = description
     output[:name_localizations] = name_localizations unless name_localizations.nil?
-    output[:description] = description unless description.nil?
     output[:description_localizations] = description_localizations unless description_localizations.nil?
     output[:options] = options unless options.nil?
-    output[:default_permission] = default_permission unless default_permission.nil?
     output[:type] = type unless type.nil?
     output[:nsfw] = nsfw unless nsfw.nil?
     output[:default_member_permissions] = default_member_permissions unless default_member_permissions.nil?
+    unless dm_permission.nil?
+      @logger.warn('The "dm_permission" parameter has been deprecated and "contexts" should be used instead!')
+      output[:dm_permission] = dm_permission
+    end
+    unless default_permission.nil?
+      @logger.warn('The "default_permission" parameter has been replaced by "default_member_permissions" ' \
+                     'and will be deprecated in the future.')
+      output[:default_permission] = default_permission
+    end
     output[:integration_types] = integration_types unless integration_types.nil?
     output[:contexts] = contexts unless contexts.nil?
     url = "#{@base_url}/applications/#{@application_id}/commands"
@@ -157,10 +257,11 @@ class DiscordApi
   end
 
   def create_global_application_commands(application_commands_array)
+    response = []
     if application_commands_array.is_a?(Array)
       application_commands_array.each do |parameter_array|
         if parameter_array.is_a?(Array)
-          create_global_application_command(*parameter_array)
+          response << create_global_application_command(*parameter_array[0..1], **parameter_array[2] || {})
         else
           @logger.error("Invalid parameter array: #{parameter_array}. Expected an array of parameters.")
         end
@@ -168,6 +269,7 @@ class DiscordApi
     else
       @logger.error("Invalid application commands array: #{application_commands_array}. Expected an array of arrays.")
     end
+    response
   end
 
   def edit_global_application_command(command_id, name: nil, name_localizations: nil, description: nil,
@@ -426,6 +528,7 @@ class DiscordApi
     Async do |_task|
       rescue_connection, sequence, resume_gateway_url, session_id = nil
       loop do
+        recieved_ready = false
         url = if rescue_connection.nil?
                 response = DiscordApi.get("#{@base_url}/gateway")
                 if response.status == 200
@@ -439,9 +542,6 @@ class DiscordApi
               end
         endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
         Async::WebSocket::Client.connect(endpoint) do |connection|
-          connection.write JSON.generate({ op: 1, d: nil })
-          connection.flush
-
           if rescue_connection.nil?
             identify = {}
             identify[:op] = 2
@@ -481,46 +581,61 @@ class DiscordApi
 
           loop do
             message = connection.read
-            message = JSON.parse(message, symbolize_names: true)
-            @logger.debug(message)
+            next if message.nil?
 
+            @logger.debug("Raw gateway message: #{message.buffer}")
+            message = JSON.parse(message, symbolize_names: true)
+            @logger.debug("JSON parsed gateway message: #{message}")
+
+            block.call(message)
             case message
             in { op: 10 }
               @logger.info('Received Hello')
               @heartbeat_interval = message[:d][:heartbeat_interval]
-            in { op:  1 }
+            in { op: 1 }
               @logger.info('Received Heartbeat Request')
               connection.write JSON.generate({ op: 1, d: nil })
               connection.flush
             in { op: 11 }
               @logger.info('Received Heartbeat ACK')
-            in { op: 0, t: 'INTERACTION_CREATE' }
-              @logger.info('An interaction was created')
-              sequence = message[:s]
-              block.call(message)
             in { op: 0, t: 'READY' }
               @logger.info('Recieved Ready')
               session_id = message[:d][:session_id]
               resume_gateway_url = message[:d][:resume_gateway_url]
               sequence = message[:s]
+              recieved_ready = true
             in { op: 0 }
               @logger.info('An event was dispatched')
               sequence = message[:s]
             in { op: 7 }
-              rescue_connection = { type: 'reconnect', session_id: session_id, resume_gateway_url: resume_gateway_url,
-                                    sequence: sequence }
-              @logger.warn('Received Reconnect. A rescue will be attempted....')
+              if recieved_ready
+                rescue_connection = { session_id: session_id, resume_gateway_url: resume_gateway_url,
+                                      sequence: sequence }
+                @logger.warn('Received Reconnect. A rescue will be attempted....')
+              else
+                @logger.warn('Received Reconnect. A rescue cannot be attempted.')
+              end
+            in { op: 9 }
+              if message[:d] && recieved_ready
+                rescue_connection = { session_id: session_id, resume_gateway_url: resume_gateway_url,
+                                      sequence: sequence }
+                @logger.warn('Recieved Invalid Session. A rescue will be attempted...')
+              else
+                @logger.warn('Recieved Invalid Session. A rescue cannot be attempted.')
+              end
             else
-              @logger.error('Unimplemented event type')
+              @logger.error("Unimplemented event type with opcode #{message[:op]}")
             end
           end
         end
       rescue Protocol::WebSocket::ClosedError
-        @logger.warn('WebSocket connection closed. Attempting rescue.')
-        if rescue_connection && rescue_connection[:type] == 'reconnect'
-          @logger.info('Rescue possible. Starting...')
-          next
+        @logger.warn('WebSocket connection closed. Attempting reconnect and rescue.')
+        if rescue_connection
+          @logger.info('Rescue possible. Reconnecting and rescuing...')
+        else
+          @logger.info('Rescue not possible. Reconnecting...')
         end
+        next
       end
     end
   end

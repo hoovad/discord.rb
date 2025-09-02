@@ -13,6 +13,10 @@ The test.rb file creates two commands "test" and "test2", that return "Hi" and "
 
 !DISCLAIMER! This is project is in development. Expect changes that might break your code at any time.
 
+Most functions in this library return a `Faraday::Response` object. If you want to get the contents of the response, use the `body` instance method (example: `[Faraday::Response object here].body`). The contents will most likely be JSON. To convert it to a Ruby object, use `JSON.parse([Faraday::Response object here].body)`.
+
+When reading the documentation, there most likely will be a link to the relevant Discord Developer Documentation page. Please read that page as well, it will contain information that may help you.
+
 ## Roadmap
 - [x] Indev release (v0.1.0)
     - [x] Basic Discord API wrapper
@@ -23,8 +27,9 @@ The test.rb file creates two commands "test" and "test2", that return "Hi" and "
     - [x] Basic gateway support
     - [x] RubyGem building and publishing
 - [ ] Alpha release (v0.2.0)
-    - [ ] Add support for all Discord API endpoints
-    - [ ] Add support for all Discord Gateway events and properly handle the connection
+    - [ ] Add support for all Discord API endpoints (v0.2.0)
+    - [ ] Add support for all Discord Gateway events and properly handle the connection (v0.1.5)
+    - [ ] Add support for uploading files (v0.1.4)
     - [ ] Documentation (v0.1.3)
     - [x] Transition to Faraday for HTTP requests (v0.1.1)
     - [x] Functions where all options are optional, check if atleast one is provided (v0.1.1.1)
