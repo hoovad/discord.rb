@@ -649,7 +649,7 @@ class DiscordApi
     response
   end
 
-  def get_guild_wiget(guild_id)
+  def get_guild_widget(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/widget.json"
     headers = { 'Authorization': @authorization_header }
     response = DiscordApi.get(url, headers)
