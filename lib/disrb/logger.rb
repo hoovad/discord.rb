@@ -22,12 +22,16 @@ class Logger2
     @verbosity_level = verbosity_level
   end
 
-  def base(acolor1, acolor2, acolor3, name, message)
+  def self.base(acolor1, acolor2, acolor3, name, message)
+    caller = caller_locations[1]
+    file = caller.path
+    line = caller.lineno
+    location = "#{file}:#{line}"
     name = name.ljust(14, ' ')
     acolors = [acolor1, acolor2, acolor3].join(';')
     "\033[1;38;2;255;255;255;48;2;#{acolors}m | #{name} \033[0m\033[38;2;255;255;255;48;2;44;62;80m" \
-      " #{Time.now.strftime('%Y-%m-%d %H:%M:%S')} \033[0m\033[1;38;2;255;255;255;48;2;#{acolors}m  \033[0m " \
-      "\e[38;2;#{acolors}m#{message}\e[0m"
+      " #{Time.now.strftime('%Y-%m-%d %H:%M:%S')} at #{location} \033[0m\033[1;38;2;255;255;255;48;2;#{acolors}m" \
+      "  \033[0m \e[38;2;#{acolors}m#{message}\e[0m"
   end
 
   # Logs a fatal error to the console if the verbosity level is set to 1 or higher.
@@ -36,7 +40,7 @@ class Logger2
   def fatal_error(message)
     return unless @verbosity_level >= 1
 
-    puts(base(192, 57, 43, 'FATAL ERROR', message))
+    puts(Logger2.base(192, 57, 43, 'FATAL ERROR', message))
   end
 
   # Logs an error to the console if the verbosity level is set to 2 or higher.
@@ -45,7 +49,7 @@ class Logger2
   def error(message)
     return unless @verbosity_level >= 2
 
-    puts(base(243, 156, 18, 'ERROR', message))
+    puts(Logger2.base(243, 156, 18, 'ERROR', message))
   end
 
   # Logs a debug message to the console if the verbosity level is set to 5.
@@ -54,7 +58,7 @@ class Logger2
   def debug(message)
     return unless @verbosity_level == 5
 
-    puts(base(155, 89, 182, 'DEBUG', message))
+    puts(Logger2.base(155, 89, 182, 'DEBUG', message))
   end
 
   # Logs a warning to the console if the verbosity level is set to 3 or higher.
@@ -63,7 +67,7 @@ class Logger2
   def warn(message)
     return unless @verbosity_level >= 3
 
-    puts(base(241, 196, 15, 'WARNING', message))
+    puts(Logger2.base(241, 196, 15, 'WARNING', message))
   end
 
   # Logs an info message to the console if the verbosity level is set to 4 or higher.
@@ -72,7 +76,7 @@ class Logger2
   def info(message)
     return unless @verbosity_level >= 4
 
-    puts(base(76, 175, 80, 'INFORMATION', message))
+    puts(Logger2.base(76, 175, 80, 'INFORMATION', message))
   end
 
   # Logs a fatal error to the console

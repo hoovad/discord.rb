@@ -14,6 +14,8 @@
 - The payload_json parameter in DiscordApi#edit_message is only to be included in multipart/form-data requests, not JSON, so we remove it
 - Rework the gateway connection reconnect code a bit
 - Rework test.rb for the new code and also fix some bugs
+- Add file and line information to Logger2 (shows where the logger was called)
+- Fix a bug where all Logger2 class functions couldn't find Logger2#base
 
 ## Breaking changes
 
