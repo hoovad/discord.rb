@@ -41,4 +41,5 @@ When reading the documentation, there most likely will be a link to the relevant
     - [ ] Voice support
     - [ ] Add parameter validation
 - [ ] Stable release (v1.0.0)
+    - [ ] Class-ification update (instead of returning the raw HTTP response, make them into classes to make responses easier to use)
     - [ ] Bugfixes, consistency and improvements
