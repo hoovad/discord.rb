@@ -238,26 +238,33 @@ class DiscordApi
   # Modify the positions of a set of channel objects for the guild. Returns 204 No Content on success.
   # See https://discord.com/developers/docs/resources/guild#modify-guild-channel-positions
   # @param guild_id [String] ID (as a string) of the guild to modify the channel positions for.
-  # @param data [Hash] A hash where the keys are channel IDs (as symbols) and the values are another hash formed of keys that are either:
+  # @param data [Hash] A hash where the keys are channel IDs (as symbols) and the values are another hash formed of keys
+  #   that are either:
   #   - :position (Integer) sorting position of the channel (channels with the same position are sorted by ID)
-  #   - :lock_permissions (TrueClass, FalseClass) whether to sync the permission overwrites with the new parent category, if moving to a different one. If this is provided but :parent_id isnt, this will be dropped from the request
+  #   - :lock_permissions (TrueClass, FalseClass) whether to sync the permission overwrites with the new parent
+  #     category, if moving to a different one. If this is provided but :parent_id isnt, this will be dropped from the
+  #     request
   #   - :parent_id (String) ID (as a string) of the new parent category for a channel
   #   Example:
-  #   { :1395365491005980814 => { :position => 0, :lock_permissions => false, :parent_id => "1395365491005980825" }, 1389464920227319879 => { :position => 1 }}
-  # 
-  #   If no modifications are provided for a channel, that channel will be dropped, please note that :lock_permissions can be dropped, and this affects if it gets dropped
+  #   { :1395365491005980814 => { :position => 0, :lock_permissions => false, :parent_id => "1395365491005980825" },
+  #   1389464920227319879 => { :position => 1 }}
   #
-  #   And if the entire data hash is empty (after dropping channels with no modifications), the entire function will be skipped and will return nil
-  # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if no modifications were provided
+  #   If no modifications are provided for a channel, that channel will be dropped, please note that :lock_permissions
+  #   can be dropped, and this affects if it gets dropped
+  #
+  #   And if the entire data hash is empty (after dropping channels with no modifications), the entire function will be
+  #   skipped and will return nil
+  # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if no
+  #   modifications were provided
   def modify_guild_channel_positions(guild_id, data)
     output = []
     data.each do |channel_id, modification|
       channel_modification = {}
-      channel_modification[:id] == channel_id
-      channel_modification[:position] == modification[:position] if modification.include?(:position)
-      channel_modification[:lock_permissions] == modification[:lock_permissions] if modification
-                                                                                    .include?(:lock_permissions)
-      channel_modification[:parent_id] == modification[:parent_id] if modification.include?(:parent_id)
+      channel_modification[:id] = channel_id
+      channel_modification[:position] = modification[:position] if modification.include?(:position)
+      channel_modification[:lock_permissions] = modification[:lock_permissions] if modification
+                                                                                   .include?(:lock_permissions)
+      channel_modification[:parent_id] = modification[:parent_id] if modification.include?(:parent_id)
       if (channel_modification.keys - %i[id lock_permissions position]).empty? &&
          !channel_modification.key?(:parent_id)
         @logger.warn('lock_permissions has been specified, but parent_id hasn\'t. Dropping lock_permissions from ' \
@@ -265,7 +272,8 @@ class DiscordApi
         channel_modification.delete(:lock_permissions)
       end
       if channel_modification.empty?
-        @logger.warn("No channel position modifications provided for channel with ID #{channel_id}. Skipping channel position modification.")
+        @logger.warn("No channel position modifications provided for channel with ID #{channel_id}. Skipping channel" \
+                     ' position modification.')
       else
         output << channel_modification
       end
@@ -350,10 +358,12 @@ class DiscordApi
     response
   end
 
-  # Adds a user to the specified guild. Returns 201 Created with the body being the Guild Member object of the added user or 204 No Content if the user is already in the guild. See https://discord.com/developers/docs/resources/guild#add-guild-member
+  # Adds a user to the specified guild. Returns 201 Created with the body being the Guild Member object of the added
+  #   user or 204 No Content if the user is already in the guild. See https://discord.com/developers/docs/resources/guild#add-guild-member
   # @param guild_id [String] ID (as a string) of the guild to add the user to
   # @param user_id [String] ID (as a string) of the user to add to the guild
-  # @param access_token [String] A valid OAuth2 access token with the guilds.join scope created by the user you want to add to the guild for the bot that is adding the user
+  # @param access_token [String] A valid OAuth2 access token with the guilds.join scope created by the user you want to
+  #   add to the guild for the bot that is adding the user
   # @param roles [Array, nil] Array of role IDs (as strings) the user will be assigned
   # @param nick [String, nil] String to set the user's nickname to
   # @param mute [TrueClass, FalseClass, nil] Whether the user is muted in voice channels
