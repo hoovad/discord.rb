@@ -16,4 +16,5 @@ Gem::Specification.new do |s|
   s.add_dependency 'async-websocket', '>= 0.30.0'
   s.add_dependency 'faraday', '>= 2.13.3'
   s.add_development_dependency 'rubocop', '>= 1.79.0'
+  s.add_development_dependency 'ruby-lsp', '>= 0.26.0'
 end

@@ -22,6 +22,7 @@
 - Make nick in DiscordApi#modify_current_user_nick required because its the only modification
 - Add support for some other opcodes in DiscordApi#connect_gateway
 - Create new class function DiscordApi#bitwise_permission_flags that returns a hash with the key as the permission name (as a symbol) and the value as the bitwise permission flag, and make DiscordApi#calculate_permissions_integer and DiscordApi#reverse_permissions_integer use it to trim down some lines of code
+- Move functions related to Application Commands from lib/disrb.rb to a separate file in lib/disrb/application_commands.rb
 
 ## Breaking changes
 
