@@ -36,7 +36,7 @@ When reading the documentation, there most likely will be a link to the relevant
     - [ ] Add support for all Discord API endpoints (v0.2.0)
     - [ ] Add support for all Discord Gateway events and properly handle the connection (v0.1.5)
     - [ ] Add support for uploading files (v0.1.4)
-    - [ ] Documentation (v0.1.3)
+    - [x] Documentation (v0.1.3)
     - [x] Full message resource support (v0.1.2)
     - [x] Transition to Faraday for HTTP requests (v0.1.1)
 - [ ] Beta release (v0.3.0)

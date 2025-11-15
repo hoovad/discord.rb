@@ -1,4 +1,4 @@
-# development
+# v0.1.3 (2025-11-15)
 
 - Add documentation
 - Lots of bugfixes and improvements

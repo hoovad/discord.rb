@@ -47,7 +47,7 @@ class Snowflake
 end
 
 # Class that contains functions that allow interacting with the Discord API.
-# @version 0.1.2.2
+# @version 0.1.3
 class DiscordApi
   # @!attribute [r] base_url
   #   @return [String] the base URL that is used to access the Discord API. ex: "https://discord.com/api/v10"
