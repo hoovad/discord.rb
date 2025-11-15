@@ -256,6 +256,13 @@ class DiscordApi
     response
   end
 
+  # Mass-creates application commands globally.
+  # Each inner array should contain the first two required parameters (name, description) in order,
+  # followed by an optional Hash for keyword parameters (e.g., :options, :type, etc.).
+  # See https://discord.com/developers/docs/interactions/application-commands#create-global-application-command
+  # @param application_commands_array [Array] Array of parameter arrays for command creation.
+  # @return [Array] An array of Faraday::Response objects, each one responses Discord API for each command created in
+  #   order.
   def create_global_application_commands(application_commands_array)
     response = []
     if application_commands_array.is_a?(Array)
@@ -272,6 +279,21 @@ class DiscordApi
     response
   end
 
+  # Edits a global application command. Returns 200 OK with the updated command object on success.
+  # If none of the optional parameters are specified (modifications), the function logs a warning and returns nil.
+  # See https://discord.com/developers/docs/interactions/application-commands#edit-global-application-command
+  # @param command_id [String] The ID of the global command to edit.
+  # @param name [String, nil] New name of the command.
+  # @param name_localizations [Hash, nil] Localized names for the command.
+  # @param description [String, nil] New description of the command.
+  # @param description_localizations [Hash, nil] Localized descriptions for the command.
+  # @param options [Array, nil] New options for the command.
+  # @param default_member_permissions [String, nil] New default permissions bitwise string for the command.
+  # @param default_permission [TrueClass, FalseClass, nil] (deprecated) Whether the command is enabled by default.
+  # @param integration_types [Array, nil] Installation context(s) where the command is available.
+  # @param contexts [Array, nil] Interaction context(s) where the command can be used.
+  # @param nsfw [TrueClass, FalseClass, nil] Whether the command is NSFW.
+  # @return [Faraday::Response, nil] The response from the Discord API, or nil if no modifications were provided.
   def edit_global_application_command(command_id, name: nil, name_localizations: nil, description: nil,
                                       description_localizations: nil, options: nil, default_member_permissions: nil,
                                       default_permission: nil, integration_types: nil, contexts: nil, nsfw: nil)
@@ -300,6 +322,20 @@ class DiscordApi
     response
   end
 
+  # Edits a guild application command. Returns 200 OK with the updated command object on success.
+  # If none of the optional parameters are specified (modifications), the function logs a warning and returns nil.
+  # See https://discord.com/developers/docs/interactions/application-commands#edit-guild-application-command
+  # @param guild_id [String] The ID of the guild containing the command.
+  # @param command_id [String] The ID of the guild command to edit.
+  # @param name [String, nil] New name of the command.
+  # @param name_localizations [Hash, nil] Localized names for the command.
+  # @param description [String, nil] New description of the command.
+  # @param description_localizations [Hash, nil] Localized descriptions for the command.
+  # @param options [Array, nil] New options for the command.
+  # @param default_member_permissions [String, nil] New default permissions bitwise string for the command.
+  # @param default_permission [TrueClass, FalseClass, nil] (deprecated) Whether the command is enabled by default.
+  # @param nsfw [TrueClass, FalseClass, nil] Whether the command is NSFW.
+  # @return [Faraday::Response, nil] The response from the Discord API, or nil if no modifications were provided.
   def edit_guild_application_command(guild_id, command_id, name: nil, name_localizations: nil, description: nil,
                                      description_localizations: nil, options: nil, default_member_permissions: nil,
                                      default_permission: nil, nsfw: nil)
@@ -326,6 +362,10 @@ class DiscordApi
     response
   end
 
+  # Deletes a global application command. Returns 204 No Content on success.
+  # See https://discord.com/developers/docs/interactions/application-commands#delete-global-application-command
+  # @param command_id [String] The ID of the global command to delete.
+  # @return [Faraday::Response] The response from the Discord API.
   def delete_global_application_command(command_id)
     url = "#{@base_url}/applications/#{@application_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
@@ -336,6 +376,11 @@ class DiscordApi
     response
   end
 
+  # Deletes a guild application command. Returns 204 No Content on success.
+  # See https://discord.com/developers/docs/interactions/application-commands#delete-guild-application-command
+  # @param guild_id [String] The ID of the guild containing the command.
+  # @param command_id [String] The ID of the guild command to delete.
+  # @return [Faraday::Response] The response from the Discord API.
   def delete_guild_application_command(guild_id, command_id)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
@@ -346,6 +391,11 @@ class DiscordApi
                   "Response: #{response.body}")
   end
 
+  # Returns a list of application commands for a guild. Returns 200 OK with an array of command objects.
+  # See https://discord.com/developers/docs/interactions/application-commands#get-guild-application-commands
+  # @param guild_id [String] The ID of the guild to list commands for.
+  # @param with_localizations [TrueClass, FalseClass, nil] Whether to include full localization dictionaries.
+  # @return [Faraday::Response] The response from the Discord API.
   def get_guild_application_commands(guild_id, with_localizations: nil)
     query_string_hash = {}
     query_string_hash[:with_localizations] = with_localizations unless with_localizations.nil?
@@ -359,6 +409,10 @@ class DiscordApi
     response
   end
 
+  # Returns a list of global application commands for the current application. Returns 200 OK on success.
+  # See https://discord.com/developers/docs/interactions/application-commands#get-global-application-commands
+  # @param with_localizations [TrueClass, FalseClass, nil] Whether to include full localization dictionaries.
+  # @return [Faraday::Response] The response from the Discord API.
   def get_global_application_commands(with_localizations: false)
     query_string_hash = {}
     query_string_hash[:with_localizations] = with_localizations unless with_localizations.nil?
@@ -372,6 +426,10 @@ class DiscordApi
     response
   end
 
+  # Returns a single global application command by ID. Returns 200 OK with the command object.
+  # See https://discord.com/developers/docs/interactions/application-commands#get-global-application-command
+  # @param command_id [String] The ID of the global command to retrieve.
+  # @return [Faraday::Response] The response from the Discord API.
   def get_global_application_command(command_id)
     url = "#{@base_url}/applications/#{@application_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
@@ -382,6 +440,11 @@ class DiscordApi
     response
   end
 
+  # Returns a single guild application command by ID. Returns 200 OK with the command object.
+  # See https://discord.com/developers/docs/interactions/application-commands#get-guild-application-command
+  # @param guild_id [String] The ID of the guild containing the command.
+  # @param command_id [String] The ID of the guild command to retrieve.
+  # @return [Faraday::Response] The response from the Discord API.
   def get_guild_application_command(guild_id, command_id)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
@@ -392,6 +455,10 @@ class DiscordApi
     response
   end
 
+  # Overwrites all global application commands. Returns 200 OK with an array of the new command objects.
+  # See https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-global-application-commands
+  # @param commands [Array] Array of command objects (hashes) to set globally.
+  # @return [Faraday::Response] The response from the Discord API.
   def bulk_overwrite_global_application_commands(commands)
     url = "#{@base_url}/applications/#{@application_id}/commands"
     data = JSON.generate(commands)
@@ -403,6 +470,11 @@ class DiscordApi
     response
   end
 
+  # Overwrites all guild application commands in a guild. Returns 200 OK with an array of the new command objects.
+  # See https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-guild-application-commands
+  # @param guild_id [String] The ID of the guild to overwrite commands for.
+  # @param commands [Array] Array of command objects (hashes) to set for the guild.
+  # @return [Faraday::Response] The response from the Discord API.
   def bulk_overwrite_guild_application_commands(guild_id, commands)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands"
     data = JSON.generate(commands)
@@ -415,6 +487,10 @@ class DiscordApi
     response
   end
 
+  # Returns all application command permissions for a guild. Returns 200 OK with an array of permissions.
+  # See https://discord.com/developers/docs/interactions/application-commands#get-guild-application-command-permissions
+  # @param guild_id [String] The ID of the guild to get command permissions for.
+  # @return [Faraday::Response] The response from the Discord API.
   def get_guild_application_command_permissions(guild_id)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/permissions"
     headers = { 'Authorization': @authorization_header }
@@ -426,6 +502,11 @@ class DiscordApi
     response
   end
 
+  # Returns command permissions for a specific guild command. Returns 200 OK with the permission object.
+  # See https://discord.com/developers/docs/interactions/application-commands#get-application-command-permissions
+  # @param guild_id [String] The ID of the guild containing the command.
+  # @param command_id [String] The ID of the command to get permissions for.
+  # @return [Faraday::Response] The response from the Discord API.
   def get_application_command_permissions(guild_id, command_id)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}/permissions"
     headers = { 'Authorization': @authorization_header }
@@ -437,6 +518,12 @@ class DiscordApi
     response
   end
 
+  # Edits command permissions for a specific guild command. Returns 200 OK with the updated permissions.
+  # See https://discord.com/developers/docs/interactions/application-commands#edit-application-command-permissions
+  # @param guild_id [String] The ID of the guild containing the command.
+  # @param command_id [String] The ID of the command to edit permissions for.
+  # @param permissions [Hash] The permissions payload to set.
+  # @return [Faraday::Response] The response from the Discord API.
   def edit_application_command_permissions(guild_id, command_id, permissions)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}/permissions"
     data = JSON.generate(permissions)
@@ -449,6 +536,22 @@ class DiscordApi
     response
   end
 
+  # Connects to the Discord Gateway and identifies/resumes the session.
+  # This establishes a WebSocket connection, performs Identify/Resume flows, sends/receives heartbeats,
+  # and yields gateway events to the provided block.
+  # See https://discord.com/developers/docs/topics/gateway and
+  # https://discord.com/developers/docs/topics/gateway#identify and
+  # https://discord.com/developers/docs/topics/gateway#resume
+  # @param activities [Hash, Array, nil] Activity or list of activities to set in presence.
+  # @param os [String, nil] OS name reported to the Gateway. Host OS if nil.
+  # @param browser [String, nil] Browser/client name reported to the Gateway. "discord.rb" if nil.
+  # @param device [String, nil] Device name reported to the Gateway. "discord.rb" if nil
+  # @param intents [Integer, nil] Bitwise Gateway intents integer.
+  # @param presence_since [Integer, TrueClass, nil] Unix ms timestamp or true for since value in presence.
+  # @param presence_status [String, nil] Presence status (e.g., "online", "idle", "dnd").
+  # @param presence_afk [TrueClass, FalseClass, nil] Whether the client is AFK.
+  # @yield [event] Yields parsed Gateway events to the block if provided.
+  # @return [void]
   def connect_gateway(activities: nil, os: nil, browser: nil, device: nil, intents: nil, presence_since: nil,
                       presence_status: nil, presence_afk: nil, &block)
     if @authorization_token_type == 'Bearer'
@@ -640,6 +743,13 @@ class DiscordApi
     end
   end
 
+  # Creates a response to an interaction. Returns 204 No Content by default, or 200 OK with the created message
+  # if `with_response` is true and the response type expects it.
+  # See https://discord.com/developers/docs/interactions/receiving-and-responding#create-interaction-response
+  # @param interaction [Hash] The interaction payload received from the Gateway.
+  # @param response [Hash] The interaction response payload.
+  # @param with_response [TrueClass, FalseClass] Whether to request the created message in the response.
+  # @return [Faraday::Response] The response from the Discord API.
   def respond_interaction(interaction, response, with_response: false)
     query_string_hash = {}
     query_string_hash[:with_response] = with_response
@@ -711,6 +821,11 @@ class DiscordApi
     }
   end
 
+  # Calculates a permissions integer from an array of permission names.
+  # See https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags
+  # @param permissions [Array] Array of permission names as strings or symbols, case insensitive, use underscores
+  #   between spaces.
+  # @return [Integer] Bitwise OR of all permission flags.
   def self.calculate_permissions_integer(permissions)
     permissions = permissions.map do |permission|
       DiscordApi.bitwise_permission_flags[permission.downcase.to_sym]
@@ -718,6 +833,10 @@ class DiscordApi
     permissions.reduce(0) { |acc, n| acc | n }
   end
 
+  # Reverses a permissions integer back into an array of permission names.
+  # See https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags
+  # @param permissions_integer [Integer] Bitwise permissions integer.
+  # @return [Array] Array of permission names present (as symbols) in the integer.
   def self.reverse_permissions_integer(permissions_integer)
     permissions = []
     DiscordApi.bitwise_permission_flags.each do |permission, value|
@@ -726,6 +845,11 @@ class DiscordApi
     permissions
   end
 
+  # Calculates a gateway intents integer from an array of intent names.
+  # See https://discord.com/developers/docs/topics/gateway#gateway-intents
+  # @param intents [Array] Array of gateway intent names as strings or symbols, case insensitive, use underscores
+  #   between spaces.
+  # @return [Integer] Bitwise OR of all intents flags.
   def self.calculate_gateway_intents(intents)
     bitwise_intent_flags = {
       guilds: 1 << 0,
@@ -752,6 +876,10 @@ class DiscordApi
     intents.reduce(0) { |acc, n| acc | n }
   end
 
+  # Performs an HTTP GET request using Faraday.
+  # @param url [String] Full URL including scheme and host; path may be included.
+  # @param headers [Hash, nil] Optional request headers.
+  # @return [Faraday::Response] The Faraday response object.
   def self.get(url, headers = nil)
     split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
     @logger.error("Empty/invalid URL provided: #{url}. Cannot perform GET request.") if split_url.empty?
@@ -765,6 +893,10 @@ class DiscordApi
     end
   end
 
+  # Performs an HTTP DELETE request using Faraday.
+  # @param url [String] Full URL including scheme and host; path may be included.
+  # @param headers [Hash, nil] Optional request headers.
+  # @return [Faraday::Response] The Faraday response object.
   def self.delete(url, headers = nil)
     split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
     @logger.error("Empty/invalid URL provided: #{url}. Cannot perform DELETE request.") if split_url.empty?
@@ -778,6 +910,11 @@ class DiscordApi
     end
   end
 
+  # Performs an HTTP POST request using Faraday.
+  # @param url [String] Full URL including scheme and host; path may be included.
+  # @param data [String] Serialized request body (e.g., JSON string).
+  # @param headers [Hash, nil] Optional request headers.
+  # @return [Faraday::Response] The Faraday response object.
   def self.post(url, data, headers = nil)
     split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
     @logger.error("Empty/invalid URL provided: #{url}. Cannot perform POST request.") if split_url.empty?
@@ -791,6 +928,11 @@ class DiscordApi
     end
   end
 
+  # Performs an HTTP PATCH request using Faraday.
+  # @param url [String] Full URL including scheme and host; path may be included.
+  # @param data [String] Serialized request body (e.g., JSON string).
+  # @param headers [Hash, nil] Optional request headers.
+  # @return [Faraday::Response] The Faraday response object.
   def self.patch(url, data, headers = nil)
     split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
     @logger.error("Empty/invalid URL provided: #{url}. Cannot perform PATCH request.") if split_url.empty?
@@ -804,6 +946,11 @@ class DiscordApi
     end
   end
 
+  # Performs an HTTP PUT request using Faraday.
+  # @param url [String] Full URL including scheme and host; path may be included.
+  # @param data [String] Serialized request body (e.g., JSON string).
+  # @param headers [Hash, nil] Optional request headers.
+  # @return [Faraday::Response] The Faraday response object.
   def self.put(url, data, headers = nil)
     split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
     @logger.error("Empty/invalid URL provided: #{url}. Cannot perform PUT request.") if split_url.empty?
