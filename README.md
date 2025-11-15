@@ -13,7 +13,13 @@ The test.rb file creates two commands "test" and "test2", that return "Hi" and "
 
 !DISCLAIMER! This is project is in development. Expect changes that might break your code at any time.
 
-Most functions in this library return a `Faraday::Response` object. If you want to get the contents of the response, use the `body` instance method (example: `[Faraday::Response object here].body`). The contents will most likely be JSON. To convert it to a Ruby object, use `JSON.parse([Faraday::Response object here].body)`.
+## How to use this project
+
+The documentation will contain information about the functions implemented in this project. Check it out [here](https://www.rubydoc.info/gems/disrb/).
+
+Most functions in this library return a `Faraday::Response` object. Check the [Faraday documentation](https://www.rubydoc.info/github/lostisland/faraday) for info on how to use that object. 
+
+If you want to get the contents of the response, use the `body` instance method (example: `[Faraday::Response object here].body`). The contents will most likely be JSON. To convert it to a Ruby object, use `JSON.parse([Faraday::Response object here].body)`.
 
 When reading the documentation, there most likely will be a link to the relevant Discord Developer Documentation page. Please read that page as well, it will contain information that may help you.
 
@@ -31,9 +37,8 @@ When reading the documentation, there most likely will be a link to the relevant
     - [ ] Add support for all Discord Gateway events and properly handle the connection (v0.1.5)
     - [ ] Add support for uploading files (v0.1.4)
     - [ ] Documentation (v0.1.3)
+    - [x] Full message resource support (v0.1.2)
     - [x] Transition to Faraday for HTTP requests (v0.1.1)
-    - [x] Functions where all options are optional, check if atleast one is provided (v0.1.1.1)
-    - [x] Prefer to use keyword arguments over positional arguments if there are more than 1 optional arguments (v0.1.1.1)
 - [ ] Beta release (v0.3.0)
     - [ ] Component support and builder
     - [ ] Sharding support

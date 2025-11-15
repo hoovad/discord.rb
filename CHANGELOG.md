@@ -16,18 +16,26 @@
 - Rework test.rb for the new code and also fix some bugs
 - Add file and line information to Logger2 (shows where the logger was called)
 - Fix a bug where all Logger2 class functions couldn't find Logger2#base
+- Fix a bug, setting communication_disabled_until to false in DiscordApi#modify_guild_member would remove the timeout by sending nil to the Discord API, as specified in the documentation
+- Add CHANGELOG.md to files in gemspec
+- Add missing parameters in DiscordApi#modify_current_member
+- Make nick in DiscordApi#modify_current_user_nick required because its the only modification
+- Add support for some other opcodes in DiscordApi#connect_gateway
+- Create new class function DiscordApi#bitwise_permission_flags that returns a hash with the key as the permission name (as a symbol) and the value as the bitwise permission flag, and make DiscordApi#calculate_permissions_integer and DiscordApi#reverse_permissions_integer use it to trim down some lines of code
 
 ## Breaking changes
 
 - Rename emoji_id parameters to emoji in all functions related to the Message resource
-- Description is actually a required parameter in create_guild_application_command and create_global_application_command and also affects create_guild_application_commands and create_global_application_commands
-- Call the block in DiscordApi#connect_gateway on every payload, not just when an interaction is created and add support
-  for some other opcodes
+- Description is a required parameter in create_guild_application_command and create_global_application_command
+- Call the block in DiscordApi#connect_gateway on every payload, not just when an interaction is created
+  (stop always expecting an interaction when the block is called)
 - Fixes where single splat operators didn't play nicely with keyword arguments (in DiscordApi#create_guild_application_commands, DiscordApi#create_global_application_commands)
 - In mass-create application command functions, make it so that it returns the response of each request as an array, not just the last request's response
 - Move DiscordApi.handle_snowflake to a separate class and slightly change usage for better documentation
 - Comment out files/_files parameter in the relevant functions due to uploading files not being implemented yet
   (also skip the relevant functions if only the files parameter is provided)
+- Fix implementation of DiscordApi#modify_guild_role_positions, the required parameters are now different
+- Apps can no longer create guilds, thus DiscordApi#create_guild has been removed
 
 # Version 0.1.2.2 (2025-08-17)
 

@@ -8,3 +8,4 @@ gem 'async-http'
 gem 'async-websocket'
 gem 'faraday'
 gem 'rubocop', group: 'development', require: false
+gem 'ruby-lsp', group: 'development', require: false

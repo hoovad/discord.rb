@@ -2,35 +2,6 @@
 
 # Class that contains functions that allow interacting with the Discord API.
 class DiscordApi
-  def create_guild(name, region: nil, icon: nil, verification_level: nil, default_message_notifications: nil,
-                   explicit_content_filter: nil, roles: nil, channels: nil, afk_channel_id: nil, afk_timeout: nil,
-                   system_channel_id: nil, system_channel_flags: nil)
-    output = {}
-    output[:name] = name
-    unless region.nil?
-      @logger.warn('The "region" parameter has been deprecated and should not be used!')
-      output[:region] = region
-    end
-    output[:icon] = icon unless icon.nil?
-    output[:verification_level] = verification_level unless verification_level.nil?
-    output[:default_message_notifications] = default_message_notifications unless default_message_notifications.nil?
-    output[:explicit_content_filter] = explicit_content_filter unless explicit_content_filter.nil?
-    output[:roles] = roles unless roles.nil?
-    output[:channels] = channels unless channels.nil?
-    output[:afk_channel_id] = afk_channel_id unless afk_channel_id.nil?
-    output[:afk_timeout] = afk_timeout unless afk_timeout.nil?
-    output[:system_channel_id] = system_channel_id unless system_channel_id.nil?
-    output[:system_channel_flags] = system_channel_flags unless system_channel_flags.nil?
-    url = "#{@base_url}/guilds"
-    data = JSON.generate(output)
-    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.post(url, data, headers)
-    return response if response.status == 200
-
-    @logger.error("Could not create guild. Response: #{response.body}")
-    response
-  end
-
   # Gets a guild object with the specified guild ID. See https://discord.com/developers/docs/resources/guild#get-guild
   # @param guild_id [String] ID (as a string) of the guild to get.
   # @param with_counts [TrueClass, FalseClass, nil] Whether to include approximate member and presence counts.
@@ -390,6 +361,25 @@ class DiscordApi
     response
   end
 
+  # Modifies a user in the specified guild. Returns 200 OK with the new Guild Member object.
+  # See https://discord.com/developers/docs/resources/guild#modify-guild-member
+  #
+  # If none of the optional parameters are provided (member modifications), the function will log a warning, no request
+  #   will be made to Discord, and the function will return nil. (note that audit_reason doesn't count)
+  # @param guild_id [String] ID (as a string) of the guild to modify the member in
+  # @param user_id [String] ID (as a string) of the user to modify
+  # @param nick [String, nil] Value to set the user's nickname to.
+  # @param roles [Array, nil] Array of role IDs (as strings) the user will be assigned.
+  # @param mute [TrueClass, FalseClass, nil] Whether the user is muted in voice channels.
+  # @param deaf [TrueClass, FalseClass, nil] Whether the user is deafened in voice channels.
+  # @param channel_id [String, nil] ID (as a string) of the ID of a voice channel to move the user to (if the user is in
+  #   a voice channel).
+  # @param communication_disabled_until [String, FalseClass, nil] When the user's timeout will expire (up to 28 days in
+  #   the future) in ISO8601 format, or false to remove timeout.
+  # @param flags [Integer, nil] New guild member flags.
+  # @param audit_reason [String, nil] Reason for the modification, shows up on the audit log entry.
+  # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if no
+  #   modifications were provided.
   def modify_guild_member(guild_id, user_id, nick: nil, roles: nil, mute: nil, deaf: nil, channel_id: nil,
                           communication_disabled_until: nil, flags: nil, audit_reason: nil)
     if args[2..-2].all?(&:nil?)
@@ -403,7 +393,11 @@ class DiscordApi
     output[:mute] = mute unless mute.nil?
     output[:deaf] = deaf unless deaf.nil?
     output[:channel_id] = channel_id unless channel_id.nil?
-    output[:communication_disabled_until] = communication_disabled_until unless communication_disabled_until.nil?
+    if communication_disabled_until == false
+      output[:communication_disabled_until] = nil
+    elsif !communication_disabled_until.nil?
+      output[:communication_disabled_until] = communication_disabled_until
+    end
     output[:flags] = flags unless flags.nil?
     url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}"
     data = JSON.generate(output)
@@ -417,15 +411,33 @@ class DiscordApi
     response
   end
 
-  def modify_current_member(guild_id, nick: nil, audit_reason: nil)
-    if nick.nil?
+  # Modifies the current member in the specified guild. Returns 200 OK with the new Guild Member object.
+  # See https://discord.com/developers/docs/resources/guild#modify-current-member
+  #
+  # If none of the optional parameters are provided (member modifications), the function will log a warning,
+  # no request will be made to Discord, and the function will return nil. (note that audit_reason doesn't count)
+  # @param guild_id [String] ID (as a string) of the guild to modify the current member in
+  # @param nick [String, nil] Value to set the user's name to in the guild.
+  # @param banner [String, nil] Data URI scheme with BASE64-encoded image data to set as the user's banner in the guild.
+  #   See https://discord.com/developers/docs/reference#image-data
+  # @param avatar [String, nil] Data URI scheme with BASE64-encoded image data to set as the user's avatar in the guild.
+  #   See https://discord.com/developers/docs/reference#image-data
+  # @param bio [String, nil] Value to set the user's bio to in the guild.
+  # @param audit_reason [String, nil] Reason for the modification, shows up on the audit log entry.
+  # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if no
+  #   modifications were provided.
+  def modify_current_member(guild_id, nick: nil, banner: nil, avatar: nil, bio: nil, audit_reason: nil)
+    output = {}
+    output[:nick] = nick unless nick.nil?
+    output[:banner] = banner unless banner.nil?
+    output[:avatar] = avatar unless avatar.nil?
+    output[:bio] = bio unless bio.nil?
+    url = "#{@base_url}/guilds/#{guild_id}/members/@me"
+    data = JSON.generate(output)
+    if data.empty?
       @logger.warn("No modifications for current member in guild ID #{guild_id} provided. Skipping.")
       return nil
     end
-    output = {}
-    output[:nick] = nick unless nick.nil?
-    url = "#{@base_url}/guilds/#{guild_id}/members/@me"
-    data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
     response = DiscordApi.patch(url, data, headers)
@@ -435,12 +447,15 @@ class DiscordApi
     response
   end
 
-  def modify_current_user_nick(guild_id, nick: nil, audit_reason: nil)
+  # THIS ENDPOINT HAS BEEN DEPRECATED AND SHOULD NOT BE USED, PLEASE USE {DiscordApi#modify_current_member} INSTEAD!
+  # Modifies the current user's nickname in the specified guild. Returns 200 OK with the new nickname.
+  # See https://discord.com/developers/docs/resources/guild#modify-current-user-nick
+  # @param guild_id [String] ID (as a string) of the guild to modify the current user's nickname in
+  # @param nick [String] Value to set the user's nickname to in the specified guild.
+  # @param audit_reason [String, nil] Reason for the modification, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
+  def modify_current_user_nick(guild_id, nick, audit_reason: nil)
     @logger.warn('The "Modify Current User Nick" endpoint has been deprecated and should not be used!')
-    if nick.nil?
-      @logger.warn("No modifications for current user nick in guild ID #{guild_id} provided. Skipping.")
-      return nil
-    end
     output = {}
     output[:nick] = nick unless nick.nil?
     url = "#{@base_url}/guilds/#{guild_id}/users/@me/nick"
@@ -454,6 +469,13 @@ class DiscordApi
     response
   end
 
+  # Adds a role to a guild member. Returns 204 No Content on success.
+  # See https://discord.com/developers/docs/resources/guild#add-guild-member-role
+  # @param guild_id [String] ID (as a string) of the guild to add the role to the member in
+  # @param user_id [String] ID (as a string) of the user to add the role to
+  # @param role_id [String] ID (as a string) of the role to add to the user
+  # @param audit_reason [String, nil] Reason for the modification, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def add_guild_member_role(guild_id, user_id, role_id, audit_reason = nil)
     url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}/roles/#{role_id}"
     headers = { 'Authorization': @authorization_header }
@@ -466,6 +488,13 @@ class DiscordApi
     response
   end
 
+  # Removes a role from a guild member. Returns 204 No Content on success.
+  # See https://discord.com/developers/docs/resources/guild#remove-guild-member-role
+  # @param guild_id [String] ID (as a string) of the guild to remove the role from the member in
+  # @param user_id [String] ID (as a string) of the user to remove the role from
+  # @param role_id [String] ID (as a string) of the role to remove from the user
+  # @param audit_reason [String, nil] Reason for the modification, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def remove_guild_member_role(guild_id, user_id, role_id, audit_reason = nil)
     url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}/roles/#{role_id}"
     headers = { 'Authorization': @authorization_header }
@@ -478,6 +507,12 @@ class DiscordApi
     response
   end
 
+  # Removes a member from a guild. Returns 204 No Content on success.
+  # See https://discord.com/developers/docs/resources/guild#remove-guild-member
+  # @param guild_id [String] ID (as a string) of the guild to remove the member from
+  # @param user_id [String] ID (as a string) of the user to remove from the guild
+  # @param audit_reason [String, nil] Reason for the kick, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def remove_guild_member(guild_id, user_id, audit_reason = nil)
     url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}"
     headers = { 'Authorization' => @authorization_header }
@@ -489,6 +524,13 @@ class DiscordApi
     response
   end
 
+  # Returns a list of ban objects for users banned from the specified guild.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-bans
+  # @param guild_id [String] ID (as a string) of the guild to get the bans from.
+  # @param limit [Integer, nil] Maximum number of bans to return (1-1000)
+  # @param before [String, nil] Get bans before this user ID (as a string)
+  # @param after [String, nil] Get bans after this user ID (as a string)
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_bans(guild_id, limit: nil, before: nil, after: nil)
     query_string_hash = {}
     query_string_hash[:limit] = limit unless limit.nil?
@@ -504,6 +546,11 @@ class DiscordApi
     response
   end
 
+  # Returns a ban object for the specified user in the specified guild. Returns 404 Not Found if the user is not banned.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-ban
+  # @param guild_id [String] ID (as a string) of the guild to get the ban from
+  # @param user_id [String] ID (as a string) of the user to get the ban object for
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_ban(guild_id, user_id)
     url = "#{@base_url}/guilds/#{guild_id}/bans/#{user_id}"
     headers = { 'Authorization': @authorization_header }
@@ -519,6 +566,15 @@ class DiscordApi
     response
   end
 
+  # Bans the specified user from the specified guild. Returns 204 No Content on success.
+  # See https://discord.com/developers/docs/resources/guild#create-guild-ban
+  # @param guild_id [String] ID (as a string) of the guild to ban the user from
+  # @param user_id [String] ID (as a string) of the user to ban from the guild
+  # @param delete_message_days [Integer, nil] Number of days to delete messages for (0-7) (DEPRECATED, use
+  #   delete_message_seconds instead)
+  # @param delete_message_seconds [Integer, nil] Number of seconds to delete messages for (0-604800) (604800s=7d)
+  # @param audit_reason [String, nil] Reason for the ban, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def create_guild_ban(guild_id, user_id, delete_message_days: nil, delete_message_seconds: nil, audit_reason: nil)
     output = {}
     unless delete_message_days.nil?
@@ -538,6 +594,12 @@ class DiscordApi
     response
   end
 
+  # Unbans the specified user from the specified guild. Returns 204 No Content on success.
+  # See https://discord.com/developers/docs/resources/guild#remove-guild-ban
+  # @param guild_id [String] ID (as a string) of the guild to unban the user from
+  # @param user_id [String] ID (as a string) of the user to unban from the guild
+  # @param audit_reason [String, nil] Reason for the unban, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def remove_guild_ban(guild_id, user_id, audit_reason = nil)
     url = "#{@base_url}/guilds/#{guild_id}/bans/#{user_id}"
     headers = { 'Authorization': @authorization_header }
@@ -550,6 +612,14 @@ class DiscordApi
     response
   end
 
+  # Ban up to 200 users from a guild in a single request. Returns 200 OK with an array of the banned user IDs and the
+  # users that couldn't be banned if atleast one user has been banned successfully.
+  # See https://discord.com/developers/docs/resources/guild#bulk-guild-ban
+  # @param guild_id [String] ID (as a string) of the guild to bulk ban users from
+  # @param user_ids [Array] Array of user IDs (as strings) to ban from the specified guild (max 200)
+  # @param delete_message_seconds [Integer, nil] Number of seconds to delete messages for (0-604800) (604800s=7d)
+  # @param audit_reason [String, nil] Reason for the bulk ban, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object
   def bulk_guild_ban(guild_id, user_ids, delete_message_seconds: nil, audit_reason: nil)
     output = {}
     output[:user_ids] = user_ids unless user_ids.nil?
@@ -569,6 +639,10 @@ class DiscordApi
     response
   end
 
+  # Returns a list of role objects for the specified guild.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-roles
+  # @param guild_id [String] ID (as a string) of the guild to get the roles from.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_roles(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/roles"
     headers = { 'Authorization': @authorization_header }
@@ -579,6 +653,11 @@ class DiscordApi
     response
   end
 
+  # Returns the role object for the specified role in the specified guild.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-role
+  # @param guild_id [String] ID (as a string) of the guild to get the role from.
+  # @param role_id [String] ID (as a string) of the role to get.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_role(guild_id, role_id)
     url = "#{@base_url}/guilds/#{guild_id}/roles/#{role_id}"
     headers = { 'Authorization': @authorization_header }
@@ -589,6 +668,21 @@ class DiscordApi
     response
   end
 
+  # Creates a new role in the specified guild. Returns 200 OK with the new role object.
+  # See https://discord.com/developers/docs/resources/guild#create-guild-role
+  # @param guild_id [String] ID (as a string) of the guild to create the role in
+  # @param name [String, nil] Name of the role (default: "new role")
+  # @param permissions [String, nil] Bitwise value of the permissions for the role (default: @everyone permissions)
+  # @param color [Integer, nil] (DEPRECATED, USE colors INSTEAD) RGB color value for the role (default: 0)
+  # @param colors [Hash, nil] Role colors object
+  # @param hoist [TrueClass, FalseClass, nil] Whether the role should be displayed separately in the sidebar
+  #   (default: false)
+  # @param icon [String, nil] URI-encoded base64 image data for the role icon (default: nil)
+  # @param unicode_emoji [String, nil] The role's unicode emoji as a standard emoji (default: nil)
+  # @param mentionable [TrueClass, FalseClass, nil] Whether the role should be able to be mentioned by @everyone
+  #   (default: false)
+  # @param audit_reason [String, nil] Reason for the creation, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def create_guild_role(guild_id, name: nil, permissions: nil, color: nil, colors: nil, hoist: nil, icon: nil,
                         unicode_emoji: nil, mentionable: nil, audit_reason: nil)
     output = {}
@@ -614,16 +708,24 @@ class DiscordApi
     response
   end
 
-  def modify_guild_role_positions(guild_id, id, position: nil, audit_reason: nil)
-    if position.nil?
+  # Modifies the position of a set of role objects in the specified guild. Returns 200 OK with an array of all of the
+  # modified role objects on success.
+  # See https://discord.com/developers/docs/resources/guild#modify-guild-role-positions
+  # @param guild_id [String] ID (as a string) of the guild to modify the role positions in
+  # @param role_positions [Array] Array of objects (hashes) with "id" and "position" keys
+  #   with "id" being the role ID (as a string) and "position" being the sorting position of the role
+  #   (roles with the same position are sorted by id), if this array is empty, a warning will be logged
+  #   and the function will be skipped, return nil. (no request will be made to discord)
+  # @param audit_reason [String, nil] Reason for the modification, shows up on the audit log entry.
+  # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if
+  #   role_positions was empty.
+  def modify_guild_role_positions(guild_id, role_positions, audit_reason: nil)
+    if role_positions.empty?
       @logger.warn("No role positions provided for guild with ID #{guild_id}. Skipping function.")
       return nil
     end
-    output = {}
-    output[:id] = id
-    output[:position] = position unless position.nil?
     url = "#{@base_url}/guilds/#{guild_id}/roles"
-    data = JSON.generate(output)
+    data = JSON.generate(role_positions)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
     response = DiscordApi.patch(url, data, headers)
@@ -633,6 +735,21 @@ class DiscordApi
     response
   end
 
+  # Modifies a guild role. Returns 200 OK with the modified role object, or nil if no modifications were provided.
+  # See https://discord.com/developers/docs/resources/guild#modify-guild-role
+  # @param guild_id [String] ID (as a string) of the guild the role to modify is in
+  # @param role_id [String] ID (as a string) of the role to modify
+  # @param name [String, nil] New name of the role
+  # @param permissions [String, nil] New bitwise value of the permissions for the role
+  # @param color [Integer, nil] (DEPRECATED, USE colors INSTEAD) New RGB color value for the role
+  # @param colors [Hash, nil] New role colors object
+  # @param hoist [TrueClass, FalseClass, nil] Whether the role should be displayed separately in the sidebar
+  # @param icon [String, nil] URI-encoded base64 image data for the role icon
+  # @param unicode_emoji [String, nil] The role's unicode emoji as a standard emoji
+  # @param mentionable [TrueClass, FalseClass, nil] Whether the role should be able to be mentioned by @everyone
+  # @param audit_reason [String, nil] Reason for the modification, shows up on the audit log entry.
+  # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if no
+  #   modifications were provided.
   def modify_guild_role(guild_id, role_id, name: nil, permissions: nil, color: nil, hoist: nil, icon: nil,
                         unicode_emoji: nil, mentionable: nil, audit_reason: nil)
     if args[2..-2].all?(&:nil?)
@@ -660,6 +777,12 @@ class DiscordApi
     response
   end
 
+  # Modifies the MFA level required for a guild. Returns 200 OK on success.
+  # @param guild_id [String] ID (as a string) of the guild to modify the MFA level for
+  # @param level [Integer] The MFA level to set for the guild, can be 0 (no MFA required) or 1 (MFA required for
+  #   administrative actions)
+  # @param audit_reason [String, nil] Reason for the modification, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def modify_guild_mfa_level(guild_id, level, audit_reason = nil)
     output = {}
     output[:level] = level
@@ -674,6 +797,12 @@ class DiscordApi
     response
   end
 
+  # Deletes a guild role. Returns 204 No Content on success.
+  # See https://discord.com/developers/docs/resources/guild#delete-guild-role
+  # @param guild_id [String] ID (as a string) of the guild the role to delete is in
+  # @param role_id [String] ID (as a string) of the role to delete
+  # @param audit_reason [String, nil] Reason for the deletion of the role, shows up in the audit log
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def delete_guild_role(guild_id, role_id, audit_reason = nil)
     url = "#{@base_url}/guilds/#{guild_id}/roles/#{role_id}"
     headers = { 'Authorization': @authorization_header }
@@ -685,6 +814,13 @@ class DiscordApi
     response
   end
 
+  # Returns a JSON object with a 'pruned' key indicating the number of members that would be removed in a prune
+  # operation with status code 200 OK. See https://discord.com/developers/docs/resources/guild#get-guild-prune-count
+  # @param guild_id [String] ID (as a string) of the guild to get the prune count for
+  # @param days [Integer, nil] Number of days to count prune for (1-30)
+  # @param include_roles [String, nil] Comma-delimited list of role IDs (as strings), these roles will also be included
+  #   in the prune count
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_prune_count(guild_id, days: nil, include_roles: nil)
     query_string_hash = {}
     query_string_hash[:days] = days unless days.nil?
@@ -699,6 +835,18 @@ class DiscordApi
     response
   end
 
+  # Begins a guild prune operation. Returns 200 OK with a JSON object containing a 'pruned' key
+  #  (optional, enabled by default) indicating the number of members that were removed on success.
+  #  See https://discord.com/developers/docs/resources/guild#begin-guild-prune
+  # @param guild_id [String] ID (as a string) of the guild to start the guild prune in
+  # @param days [Integer, nil] Number of days to prune for (1-30)
+  # @param compute_prune_count [TrueClass, FalseClass, nil] Whether to return the 'pruned' key in the response
+  # @param include_roles [Array, nil] Array of role IDs (as strings), these roles will also be included in the prune
+  #   operation
+  # @param reason [String, nil] (DEPRECATED, use audit_reason instead) Reason for the prune, shows up on the audit log
+  #   entry.
+  # @param audit_reason [String, nil] Reason for the prune, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def begin_guild_prune(guild_id, days: nil, compute_prune_count: nil, include_roles: nil, reason: nil,
                         audit_reason: nil)
     output = {}
@@ -720,6 +868,10 @@ class DiscordApi
     response
   end
 
+  # Returns a list of voice region objects for the specified guild with status code 200 OK on success.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-voice-regions
+  # @param guild_id [String] ID (as a string) of the guild to get the voice regions from
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_voice_regions(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/regions"
     headers = { 'Authorization': @authorization_header }
@@ -730,6 +882,10 @@ class DiscordApi
     response
   end
 
+  # Returns a list of invite objects for the specified guild with status code 200 OK on success.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-invites
+  # @param guild_id [String] ID (as a string) of the guild to get the invites from
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_invites(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/invites"
     headers = { 'Authorization': @authorization_header }
@@ -740,6 +896,10 @@ class DiscordApi
     response
   end
 
+  # Returns a list of integration objects for the specified guild with status code 200 OK on success.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-integrations
+  # @param guild_id [String] ID (as a string) of the guild to get the integrations from
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_integrations(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/integrations"
     headers = { 'Authorization': @authorization_header }
@@ -755,6 +915,12 @@ class DiscordApi
     response
   end
 
+  # Deletes a guild integration. Returns 204 No Content on success.
+  # See https://discord.com/developers/docs/resources/guild#delete-guild-integration
+  # @param guild_id [String] ID (as a string) of the guild containing the integration to delete
+  # @param integration_id [String] ID (as a string) of the integration to delete
+  # @param audit_reason [String, nil] Reason for the deletion, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def delete_guild_integration(guild_id, integration_id, audit_reason = nil)
     url = "#{@base_url}/guilds/#{guild_id}/integrations/#{integration_id}"
     headers = { 'Authorization': @authorization_header }
@@ -766,6 +932,10 @@ class DiscordApi
     response
   end
 
+  # Returns the guild widget settings object for the specified guild with status code 200 OK on success.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-widget-settings
+  # @param guild_id [String] ID (as a string) of the guild to get the widget settings from
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_widget_settings(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/widget"
     headers = { 'Authorization': @authorization_header }
@@ -776,6 +946,14 @@ class DiscordApi
     response
   end
 
+  # Modifies the guild widget settings for the specified guild. Returns the updated guild widget settings object
+  # with status code 200 OK on success.
+  # See https://discord.com/developers/docs/resources/guild#modify-guild-widget
+  # @param guild_id [String] ID (as a string) of the guild to modify the widget settings for
+  # @param enabled [TrueClass, FalseClass] Whether the guild widget is enabled
+  # @param channel_id [String] ID (as a string) of the channel to show in the widget
+  # @param audit_reason [String] Reason for the modification, shows up on the audit log entry.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def modify_guild_widget(guild_id, enabled, channel_id, audit_reason: nil)
     output = {}
     output[:enabled] = enabled
@@ -791,6 +969,10 @@ class DiscordApi
     response
   end
 
+  # Returns the widget object for the specified guild with status code 200 OK on success.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-widget
+  # @param guild_id [String] ID (as a string) of the guild to get the widget from
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_widget(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/widget.json"
     headers = { 'Authorization': @authorization_header }
@@ -801,6 +983,10 @@ class DiscordApi
     response
   end
 
+  # Returns a partial invite object for guilds with that feature enabled with status code 200 OK on success.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-vanity-url
+  # @param guild_id [String] ID (as a string) of the guild to get the vanity URL from
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_vanity_url(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/vanity-url"
     headers = { 'Authorization': @authorization_header }
@@ -811,6 +997,18 @@ class DiscordApi
     response
   end
 
+  # Returns the widget image (PNG) for the specified guild.
+  # Only one of the style convenience booleans (shield, banner1, banner2, banner3, banner4) can be true; if more than
+  # one is specified the function logs an error and returns nil. If none are true, the default style is used (shield).
+  # See https://discord.com/developers/docs/resources/guild#get-guild-widget-image
+  # @param guild_id [String] ID (as a string) of the guild to get the widget image for.
+  # @param shield [TrueClass, FalseClass] Whether to request the "shield" style widget image.
+  # @param banner1 [TrueClass, FalseClass] Whether to request the "banner1" style widget image.
+  # @param banner2 [TrueClass, FalseClass] Whether to request the "banner2" style widget image.
+  # @param banner3 [TrueClass, FalseClass] Whether to request the "banner3" style widget image.
+  # @param banner4 [TrueClass, FalseClass] Whether to request the "banner4" style widget image.
+  # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object containing the
+  #   PNG image data, or nil if more than one style was specified.
   def get_guild_widget_image(guild_id, shield: false, banner1: false, banner2: false, banner3: false, banner4: false)
     options = { shield: shield, banner1: banner1, banner2: banner2, banner3: banner3, banner4: banner4 }
     true_keys = options.select { |_k, v| v }.keys
@@ -836,6 +1034,10 @@ class DiscordApi
     response
   end
 
+  # Returns the welcome screen object for the specified guild.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-welcome-screen
+  # @param guild_id [String] ID (as a string) of the guild to get the welcome screen for.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_welcome_screen(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/welcome-screen"
     headers = { 'Authorization': @authorization_header }
@@ -846,6 +1048,17 @@ class DiscordApi
     response
   end
 
+  # Modifies the welcome screen for the specified guild. Returns the updated welcome screen object on success.
+  # If none of the optional parameters are specified (modifications, except audit_reason),
+  # the function logs a warning and returns nil.
+  # See https://discord.com/developers/docs/resources/guild#modify-guild-welcome-screen
+  # @param guild_id [String] ID (as a string) of the guild to modify the welcome screen for.
+  # @param enabled [TrueClass, FalseClass, nil] Whether the welcome screen is enabled.
+  # @param welcome_channels [Array, nil] Array of welcome channel objects (hashes) to set.
+  # @param description [String, nil] Description text for the welcome screen.
+  # @param audit_reason [String, nil] Reason for the modification (appears in audit log entry).
+  # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if no
+  #   modifications were provided.
   def modify_guild_welcome_screen(guild_id, enabled: nil, welcome_channels: nil, description: nil,
                                   audit_reason: nil)
     if args[1..-2].all?(&:nil?)
@@ -868,6 +1081,10 @@ class DiscordApi
     response
   end
 
+  # Returns the onboarding object for the specified guild.
+  # See https://discord.com/developers/docs/resources/guild#get-guild-onboarding
+  # @param guild_id [String] ID (as a string) of the guild to get onboarding for.
+  # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def get_guild_onboarding(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/onboarding"
     headers = { 'Authorization': @authorization_header }
@@ -878,6 +1095,18 @@ class DiscordApi
     response
   end
 
+  # Modifies the onboarding configuration for the specified guild. Returns the updated onboarding object on success.
+  # If none of the optional parameters are specified (modifications, except audit_reason),
+  # the function logs a warning and returns nil.
+  # See https://discord.com/developers/docs/resources/guild#modify-guild-onboarding
+  # @param guild_id [String] ID (as a string) of the guild to modify onboarding for.
+  # @param prompts [Array, nil] Array of prompt objects to set.
+  # @param default_channel_ids [Array, nil] Array of channel IDs (as strings) considered default for onboarding.
+  # @param enabled [TrueClass, FalseClass, nil] Whether onboarding is enabled in the guild.
+  # @param mode [Integer, nil] The onboarding mode to set.
+  # @param audit_reason [String, nil] Reason for the modification (appears in audit log entry).
+  # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if no
+  #   modifications were provided.
   def modify_guild_onboarding(guild_id, prompts: nil, default_channel_ids: nil, enabled: nil, mode: nil,
                               audit_reason: nil)
     if args[1..-2].all?(&:nil?)
@@ -901,6 +1130,16 @@ class DiscordApi
     response
   end
 
+  # Modifies the incident actions for a guild (e.g. temporarily disabling invites or direct messages).
+  # If none of the optional parameters are specified (modifications), the function logs a warning and returns nil.
+  # See https://discord.com/developers/docs/resources/guild#modify-guild-incident-actions
+  # @param guild_id [String] ID (as a string) of the guild to modify incident actions for.
+  # @param invites_disabled_until [String, FalseClass, nil] ISO8601 timestamp until which invites are disabled,
+  #   false to clear, or nil to leave unchanged.
+  # @param dms_disabled_until [String, FalseClass, nil] ISO8601 timestamp until which DMs are disabled,
+  #   false to clear, or nil to leave unchanged.
+  # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if no
+  #   modifications were provided.
   def modify_guild_incident_actions(guild_id, invites_disabled_until: nil, dms_disabled_until: nil)
     if args[1..].all?(&:nil?)
       @logger.warn("No modifications for guild incident actions with guild ID #{guild_id} provided. " \
