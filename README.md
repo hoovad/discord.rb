@@ -2,7 +2,7 @@
 
 [![Licensed under the MIT license](https://img.shields.io/github/license/hoovad/discord.rb)](LICENSE)
 [![Gem Version](https://img.shields.io/gem/v/disrb?logo=ruby&color=green)](https://rubygems.org/gems/disrb)
-![project status: active](https://img.shields.io/badge/project_status-active-active)
+![project status: discontinued](https://img.shields.io/badge/project_status-discontinued-orange)
 [![main](https://github.com/hoovad/discord.rb/actions/workflows/main.yml/badge.svg)](https://github.com/hoovad/discord.rb/actions/workflows/main.yml)
 
 [Changelog](CHANGELOG.md) | [Documentation](https://www.rubydoc.info/gems/disrb/) (currently in development)
