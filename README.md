@@ -2,10 +2,10 @@
 
 [![Licensed under the MIT license](https://img.shields.io/github/license/hoovad/discord.rb)](LICENSE)
 [![Gem Version](https://img.shields.io/gem/v/disrb?logo=ruby&color=green)](https://rubygems.org/gems/disrb)
-![project status: discontinued](https://img.shields.io/badge/project_status-discontinued-orange)
+![project status: active](https://img.shields.io/badge/project_status-active-green)
 [![main](https://github.com/hoovad/discord.rb/actions/workflows/main.yml/badge.svg)](https://github.com/hoovad/discord.rb/actions/workflows/main.yml)
 
-[Changelog](CHANGELOG.md) | [Documentation](https://www.rubydoc.info/gems/disrb/) (currently in development)
+[Changelog](CHANGELOG.md) | [Documentation](https://www.rubydoc.info/gems/disrb/)
 
 W.I.P. Discord API wrapper written in Ruby for fun.
 
