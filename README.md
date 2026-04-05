@@ -47,7 +47,7 @@ If you want to get the contents of the response, use the `body` instance method 
 - [ ] Alpha release (v0.2.0)
     - [ ] Add support for all Discord API endpoints (v0.2.0)
     - [ ] Add support for all Discord Gateway events and properly handle the connection (v0.1.5)
-    - [ ] Add support for uploading files (v0.1.4)
+    - [x] Add support for uploading files (v0.1.4)
     - [x] Documentation (v0.1.3)
     - [x] Full message resource support (v0.1.2)
     - [x] Transition to Faraday for HTTP requests (v0.1.1)
