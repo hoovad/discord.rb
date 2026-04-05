@@ -1,3 +1,16 @@
+# v0.1.4 (2026-04-05)
+
+- Add support for file uploading
+- Fix bug where HTTP handlers would continue executing even after an error
+- Add missing User-Agent header in requests to the HTTP API (it can be changed from the default)
+- Fix bug where functions may run `body` and `status` functions on a nil object
+- Change 200 server limit notice from a warning to an info message in `get_current_user_guilds`
+- Slight modifications in `README.md` and `LICENSE`
+
+## Breaking changes
+
+- Any project using `DiscordApi`'s `get`, `post`, `delete`, `put` and `patch` functions will not work, as they have been made private (only functions inside the same class can call them), in order to add functionality for customizing the User-Agent header included in requests to the HTTP API.
+
 # v0.1.3 (2025-11-15)
 
 - Add documentation

@@ -33,10 +33,11 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/channels/#{channel_id}/messages#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get messages from channel with ID #{channel_id}. Response: #{response.body}")
+    @logger.error("Failed to get messages from channel with ID #{channel_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -48,11 +49,11 @@ class DiscordApi
   def get_channel_message(channel_id, message_id)
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Failed to get message with ID #{message_id} from channel with ID #{channel_id}. " \
-                    "Response: #{response.body}")
+                    "Response: #{response_error_body(response)}")
     response
   end
 
@@ -70,21 +71,26 @@ class DiscordApi
   # @param message_reference [Hash, nil] Message reference object for replies/forwards
   # @param components [Array, nil] An array of Components to include with the message
   # @param sticker_ids [Array, nil] IDs of up to 3 stickers in the server to send in the message
-  # @param _files [nil] WORK IN PROGRESS
-  # @param attachments [Array, nil] Attachments objects with filename and description. Practically useless due to
-  #   uploading files not being implemented yet.
+  # @param files [Array, nil] An array of arrays, each inner-array first has its filename (index 0),
+  #   raw file data as a string (index 1), and then the MIME type of the file (index 2).
+  # @param attachments [Array, nil] Array of partial attachment objects, if left empty but the files parameter is
+  #   not empty, this will be automatically generated.
   # @param flags [Integer, nil] Message flags combined as a bitfield.
   # @param enforce_nonce [TrueClass, FalseClass, nil] If true and a nonce is set, the nonce's uniqueness will be
   #   checked, if a message with the same nonce already exists from the same author, that message will be returned
   #   and no new message will be created.
   # @param poll [Hash, nil] A poll object
+  # @param shared_client_theme [Hash, nil] THe custom client-side theme to share via the message;
+  #   shared client theme object
   # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if none of
   #   content, embeds, sticker_ids, components or poll were provided.
   def create_message(channel_id, content: nil, nonce: nil, tts: nil, embeds: nil, allowed_mentions: nil,
-                     message_reference: nil, components: nil, sticker_ids: nil, _files: nil, attachments: nil,
-                     flags: nil, enforce_nonce: nil, poll: nil)
-    if content.nil? && embeds.nil? && sticker_ids.nil? && components.nil? && poll.nil?
-      @logger.warn('No content, embeds, sticker_ids, components or poll provided. Skipping function.')
+                     message_reference: nil, components: nil, sticker_ids: nil, files: nil, attachments: nil,
+                     flags: nil, enforce_nonce: nil, poll: nil, shared_client_theme: nil)
+    if content.nil? && embeds.nil? && sticker_ids.nil? && components.nil? && files.nil? && poll.nil? &&
+       shared_client_theme.nil?
+      @logger.warn('No content, embeds, sticker_ids, components, files, poll or shared client theme provided.' \
+                   'Skipping function.')
       return
     end
     output = {}
@@ -96,18 +102,27 @@ class DiscordApi
     output[:message_reference] = message_reference unless message_reference.nil?
     output[:components] = components unless components.nil?
     output[:sticker_ids] = sticker_ids unless sticker_ids.nil?
-    # output[:files] = files unless files.nil?
-    output[:attachments] = attachments unless attachments.nil?
+    if attachments.nil? && !files.nil?
+      output[:attachments] = generate_attachment_object_array(files)
+    elsif attachments
+      output[:attachments] = attachments
+    end
     output[:flags] = flags unless flags.nil?
     output[:enforce_nonce] = enforce_nonce unless enforce_nonce.nil?
     output[:poll] = poll unless poll.nil?
+    output[:shared_client_theme] = shared_client_theme unless shared_client_theme.nil?
     url = "#{@base_url}/channels/#{channel_id}/messages"
     data = JSON.generate(output)
-    headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.post(url, data, headers)
-    return response if response.status == 200
+    headers = { 'Authorization': @authorization_header }
+    if files
+      response = file_upload(url, files, data, headers)
+    else
+      headers['Content-Type'] = 'application/json'
+      response = post(url, data, headers)
+    end
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to create message in channel #{channel_id}. Response: #{response.body}")
+    @logger.error("Failed to create message in channel #{channel_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -119,11 +134,11 @@ class DiscordApi
   def crosspost_message(channel_id, message_id)
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/crosspost"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.post(url, nil, headers)
-    return response if response.status == 200
+    response = post(url, nil, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Failed to crosspost message with ID #{message_id} in channel with ID #{channel_id}. " \
-                    "Response: #{response.body}")
+                    "Response: #{response_error_body(response)}")
     response
   end
 
@@ -136,11 +151,11 @@ class DiscordApi
   def create_reaction(channel_id, message_id, emoji)
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji}/@me"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.put(url, nil, headers)
-    return response if response.status == 204
+    response = put(url, nil, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Failed to create reaction with emoji ID #{emoji} in channel with ID #{channel_id} " \
-                    "for message with ID #{message_id}. Response: #{response.body}")
+                    "for message with ID #{message_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -153,11 +168,11 @@ class DiscordApi
   def delete_own_reaction(channel_id, message_id, emoji)
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji}/@me"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Failed to delete own reaction with emoji ID #{emoji} in channel with ID #{channel_id} " \
-                    "for message with ID #{message_id}. Response: #{response.body}")
+                    "for message with ID #{message_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -171,11 +186,12 @@ class DiscordApi
   def delete_user_reaction(channel_id, message_id, emoji, user_id)
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji}/#{user_id}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Failed to delete user reaction with emoji ID #{emoji} in channel with ID #{channel_id} " \
-                    "for message with ID #{message_id} by user with ID #{user_id}. Response: #{response.body}")
+                    "for message with ID #{message_id} by user with ID #{user_id}." \
+                    " Response: #{response_error_body(response)}")
     response
   end
 
@@ -196,11 +212,11 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji}#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Failed to get reactions for emoji with ID #{emoji} in channel with ID #{channel_id} " \
-                    "for message with ID #{message_id}. Response: #{response.body}")
+                    "for message with ID #{message_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -212,11 +228,11 @@ class DiscordApi
   def delete_all_reactions(channel_id, message_id)
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Failed to delete all reactions in channel with ID #{channel_id} for message with ID #{message_id}" \
-                    ". Response: #{response.body}")
+                    ". Response: #{response_error_body(response)}")
   end
 
   # Deletes all reactions with the specified emoji on a message. Returns no content on success.
@@ -228,18 +244,17 @@ class DiscordApi
   def delete_all_reactions_for_emoji(channel_id, message_id, emoji)
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}/reactions/#{emoji}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Failed to delete all reactions for emoji with ID #{emoji} in channel with ID #{channel_id} for " \
-                    "message with ID #{message_id}. Response: #{response.body}")
+                    "message with ID #{message_id}. Response: #{response_error_body(response)}")
   end
 
   # Edits a message. Returns the edited message object on success.
   # See https://discord.com/developers/docs/resources/message#edit-message
   #
   # If none of the optional parameters are provided (modifications), the function will not proceed and return nil.
-  # Since the files parameter is WIP, providing only files will also cause the function to not proceed.
   # @param channel_id [String] The ID of the channel the message is located in
   # @param message_id [String] The ID of the message to edit
   # @param content [String, nil] Message contents (up to 2000 characters)
@@ -247,16 +262,17 @@ class DiscordApi
   # @param flags [Integer, nil] Message flags combined as an integer.
   # @param allowed_mentions [Hash, nil] Allowed mentions object
   # @param components [Array, nil] An array of Components to include with the message
-  # @param files [nil] WORK IN PROGRESS
-  # @param attachments [Array, nil] Attachments objects with filename and description. Practically useless due to
-  #   uploading files not being implemented yet.
+  # @param files [Array] An array of arrays, each inner-array first has its filename (index 0),
+  #   raw file data as a string (index 1), and then the MIME type of the file (index 2).
+  # @param attachments [Array, nil] Array of partial attachment objects, if left empty but the files parameter is
+  #   not empty, this will be automatically generated.
   # @return [Faraday::Response, nil] The response from the Discord API as a Faraday::Response object, or nil if no
   #  modifications were provided.
   def edit_message(channel_id, message_id, content: nil, embeds: nil, flags: nil, allowed_mentions: nil,
                    components: nil, files: nil, attachments: nil)
-    if args[2..].all?(&:nil?) || (args[2..].delete(:files).all?(&:nil?) && !files.nil?)
+    if args[2..].all?(&:nil?)
       @logger.warn("No modifications provided for message with ID #{message_id} in channel with ID #{channel_id}. " \
-                     'The files parameter is WIP. Skipping function.')
+                    'Only modifying Skipping function.')
       return
     end
     output = {}
@@ -265,16 +281,19 @@ class DiscordApi
     output[:flags] = flags unless flags.nil?
     output[:allowed_mentions] = allowed_mentions unless allowed_mentions.nil?
     output[:components] = components unless components.nil?
-    # output[:files] = files unless files.nil?
-    output[:attachments] = attachments unless attachments.nil?
+    if attachments.nil? && !files.nil?
+      output[:attachments] = generate_attachment_object_array(files)
+    elsif attachments
+      output[:attachments] = attachments
+    end
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.patch(url, data, headers)
-    return response if response.status == 200
+    response = patch(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Failed to edit message with ID #{message_id} in channel with ID #{channel_id}. " \
-                    "Response: #{response.body}")
+                    "Response: #{response_error_body(response)}")
     response
   end
 
@@ -288,11 +307,11 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}"
     headers = { 'Authorization': @authorization_header }
     headers[:'X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Failed to delete message with ID #{message_id} in channel with ID #{channel_id}. " \
-                    "Response: #{response.body}")
+                    "Response: #{response_error_body(response)}")
     response
   end
 
@@ -308,10 +327,11 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers[:'X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.post(url, data, headers)
-    return response if response.status == 204
+    response = post(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
-    @logger.error("Failed to bulk delete messages in channel with ID #{channel_id}. Response: #{response.body}")
+    @logger.error("Failed to bulk delete messages in channel with ID #{channel_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -328,10 +348,11 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/channels/#{channel_id}/messages/pins#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get pinned messages in channel with ID #{channel_id}. Response: #{response.body}")
+    @logger.error("Failed to get pinned messages in channel with ID #{channel_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -345,11 +366,11 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/pins/#{message_id}"
     headers = { 'Authorization': @authorization_header }
     headers[:'X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.put(url, nil, headers)
-    return response if response.status == 204
+    response = put(url, nil, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Failed to pin message with ID #{message_id} in channel with ID #{channel_id}. " \
-                    "Response: #{response.body}")
+                    "Response: #{response_error_body(response)}")
     response
   end
 
@@ -363,11 +384,11 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/pins/#{message_id}"
     headers = { 'Authorization': @authorization_header }
     headers[:'X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Failed to unpin message with ID #{message_id} in channel with ID #{channel_id}. " \
-                    "Response: #{response.body}")
+                    "Response: #{response_error_body(response)}")
     response
   end
 end

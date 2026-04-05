@@ -12,10 +12,10 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/guilds/#{guild_id}#{query_string}"
     headers = { 'Authorization' => @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not get guild with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get guild with Guild ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -26,10 +26,10 @@ class DiscordApi
   def get_guild_preview(guild_id)
     url = URI("#{@base_url}/guilds/#{guild_id}/preview")
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not get guild preview with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get guild preview with Guild ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -106,20 +106,20 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.patch(url, headers, data)
-    return response if response.status == 200
+    response = patch(url, headers, data)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not modify guild with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not modify guild with Guild ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
   def delete_guild(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
-    @logger.error("Could not delete guild with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not delete guild with Guild ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -130,10 +130,10 @@ class DiscordApi
   def get_guild_channels(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/channels"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not get guild channels with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get guild channels with Guild ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -199,10 +199,10 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.post(url, data, headers)
-    return response if response.status == 200
+    response = post(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not create guild channel in Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not create guild channel in Guild ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -256,42 +256,47 @@ class DiscordApi
     url = "#{@base_url}/guilds/#{guild_id}/channels"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.patch(url, headers, data)
-    return response if response.status == 200
+    response = patch(url, headers, data)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not modify guild channel positions with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not modify guild channel positions with Guild ID #{guild_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
-  # Returns a list of active threads in the specified guild.See https://discord.com/developers/docs/resources/guild#list-active-guild-threads
+  # Returns a list of active threads in the specified guild.
+  #   See https://discord.com/developers/docs/resources/guild#list-active-guild-threads
   # @param guild_id [String] ID (as a string) of the guild to list active threads for.
   # @return [Faraday::Response] The response from the Discord API as a Faraday::Response object.
   def list_active_guild_threads(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/threads/active"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not list active guild threads with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not list active guild threads with Guild ID #{guild_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
-  # Returns a guild member object for the specified user in the specified guild. See https://discord.com/developers/docs/resources/guild#get-guild-member
+  # Returns a guild member object for the specified user in the specified guild.
+  #   See https://discord.com/developers/docs/resources/guild#get-guild-member
   # @param guild_id [String] ID (as a string) of the guild to get the member from.
   # @param user_id [String] ID (as a string) of the user to get the member object for.
   # @return [Faraday::Response] The response from the DiscordApi as a Faraday::Response object.
   def get_guild_member(guild_id, user_id)
     url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}"
     headers = { 'Authorization' => @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Could not get guild member with Guild ID #{guild_id} and User ID #{user_id}. Response:" \
-                   "#{response.body}")
+                   "#{response_error_body(response)}")
     response
   end
 
-  # Returns an array of guild member objects for the specified guild. See https://discord.com/developers/docs/resources/guild#list-guild-members
+  # Returns an array of guild member objects for the specified guild.
+  #   See https://discord.com/developers/docs/resources/guild#list-guild-members
   # @param guild_id [String] ID (as a string) of the guild to list the members for.
   # @param limit [Integer, nil] Maximum number of members to return (1-100). Default: 1
   # @param after [String, nil] Get users after this user ID (as a string)
@@ -303,14 +308,15 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/guilds/#{guild_id}/members#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not list members with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not list members with Guild ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
-  # Returns an array of guild member objects whose username/nickname match the query. See https://discord.com/developers/docs/resources/guild#search-guild-members
+  # Returns an array of guild member objects whose username/nickname match the query.
+  #   See https://discord.com/developers/docs/resources/guild#search-guild-members
   # @param guild_id [String] ID (as a string) of the guild to search the members in
   # @param query [String] Query string to match usernames and nicknames against.
   # @param limit [Integer, nil] Maximum number of members to return (1-1000). Default: 1
@@ -322,15 +328,16 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/guilds/#{guild_id}/members/search#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not search members with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not search members with Guild ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
   # Adds a user to the specified guild. Returns 201 Created with the body being the Guild Member object of the added
-  #   user or 204 No Content if the user is already in the guild. See https://discord.com/developers/docs/resources/guild#add-guild-member
+  #   user or 204 No Content if the user is already in the guild.
+  #   See https://discord.com/developers/docs/resources/guild#add-guild-member
   # @param guild_id [String] ID (as a string) of the guild to add the user to
   # @param user_id [String] ID (as a string) of the user to add to the guild
   # @param access_token [String] A valid OAuth2 access token with the guilds.join scope created by the user you want to
@@ -350,13 +357,14 @@ class DiscordApi
     url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.put(url, data, headers)
-    if response.status == 204
+    response = put(url, data, headers)
+    if response.is_a?(Faraday::Response) && response.status == 204
       @logger.warn("User with ID #{user_id} is already a member of the guild with ID #{guild_id}.")
-    elsif response.status == 201
+    elsif response.is_a?(Faraday::Response) && response.status == 201
       @logger.info("Added user with ID #{user_id} to guild with ID #{guild_id}.")
     else
-      @logger.error("Could not add user with ID #{user_id} to guild with ID #{guild_id}. Response: #{response.body}")
+      @logger.error("Could not add user with ID #{user_id} to guild with ID #{guild_id}." \
+                    " Response: #{response_error_body(response)}")
     end
     response
   end
@@ -403,11 +411,11 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.patch(url, data, headers)
-    return response if response.status == 200
+    response = patch(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Could not modify guild member with Guild ID #{guild_id} and User ID #{user_id}. " \
-    "Response: #{response.body}")
+    "Response: #{response_error_body(response)}")
     response
   end
 
@@ -440,10 +448,11 @@ class DiscordApi
     end
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.patch(url, data, headers)
-    return response if response.status == 200
+    response = patch(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not modify current member in guild with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not modify current member in guild with Guild ID #{guild_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -462,10 +471,11 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.patch(url, data, headers)
-    return response if response.status == 200
+    response = patch(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not modify current user nick in guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not modify current user nick in guild with ID #{guild_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -480,11 +490,11 @@ class DiscordApi
     url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}/roles/#{role_id}"
     headers = { 'Authorization': @authorization_header }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.put(url, nil, headers)
-    return response if response.status == 204
+    response = put(url, nil, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Could not add role with ID #{role_id}, to user with ID #{user_id} in guild with ID #{guild_id}." \
-                   " Response: #{response.body}")
+                   " Response: #{response_error_body(response)}")
     response
   end
 
@@ -499,11 +509,11 @@ class DiscordApi
     url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}/roles/#{role_id}"
     headers = { 'Authorization': @authorization_header }
     headers['x-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Could not remove role with ID #{role_id}, from user with ID #{user_id}" \
-                  " in guild with ID #{guild_id}. Response: #{response.body}")
+                  " in guild with ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -517,10 +527,11 @@ class DiscordApi
     url = "#{@base_url}/guilds/#{guild_id}/members/#{user_id}"
     headers = { 'Authorization' => @authorization_header }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
-    @logger.error("Could not remove user with ID #{user_id} from guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not remove user with ID #{user_id} from guild with ID #{guild_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -539,10 +550,10 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/guilds/#{guild_id}/bans#{query_string}"
     headers = { 'Authorization' => @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not get guild bans with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get guild bans with Guild ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -554,14 +565,14 @@ class DiscordApi
   def get_guild_ban(guild_id, user_id)
     url = "#{@base_url}/guilds/#{guild_id}/bans/#{user_id}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    if response.status == 404
+    if response.is_a?(Faraday::Response) && response.status == 404
       @logger.warn("No ban found for user with ID #{user_id} in guild with ID #{guild_id}.")
     else
       @logger.error("Could not get guild ban for user with ID #{user_id} in guild with ID #{guild_id}." \
-                     " Response: #{response.body}")
+                     " Response: #{response_error_body(response)}")
     end
     response
   end
@@ -586,11 +597,11 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.put(url, data, headers)
-    return response if response.status == 204
+    response = put(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Could not create guild ban for user with ID #{user_id} in guild with ID #{guild_id}." \
-                   " Response: #{response.body}")
+                   " Response: #{response_error_body(response)}")
     response
   end
 
@@ -604,11 +615,11 @@ class DiscordApi
     url = "#{@base_url}/guilds/#{guild_id}/bans/#{user_id}"
     headers = { 'Authorization': @authorization_header }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Could not remove guild ban for user with ID #{user_id} in guild with ID #{guild_id}" \
-                  " Response: #{response.body}")
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -628,13 +639,14 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.post(url, data, headers)
-    return response if response.status == 200
+    response = post(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    if response.status == 500_000
-      @logger.error("No users were banned in bulk ban in guild with ID #{guild_id}. Response: #{response.body}")
+    if response.is_a?(Faraday::Response) && response.status == 500_000
+      @logger.error("No users were banned in bulk ban in guild with ID #{guild_id}." \
+                    " Response: #{response_error_body(response)}")
     else
-      @logger.error("Could not bulk ban users in guild with ID #{guild_id}. Response: #{response.body}")
+      @logger.error("Could not bulk ban users in guild with ID #{guild_id}. Response: #{response_error_body(response)}")
     end
     response
   end
@@ -646,10 +658,10 @@ class DiscordApi
   def get_guild_roles(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/roles"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not get guild roles with Guild ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get guild roles with Guild ID #{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -661,10 +673,11 @@ class DiscordApi
   def get_guild_role(guild_id, role_id)
     url = "#{@base_url}/guilds/#{guild_id}/roles/#{role_id}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not get role with ID #{role_id} in guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not get role with ID #{role_id} in guild with ID #{guild_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -701,10 +714,11 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.post(url, data, headers)
-    return response if response.status == 200
+    response = post(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not create guild role in guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not create guild role in guild with ID #{guild_id}." \
+                  "Response: #{response_error_body(response)}")
     response
   end
 
@@ -728,10 +742,11 @@ class DiscordApi
     data = JSON.generate(role_positions)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.patch(url, data, headers)
-    return response if response.status == 200
+    response = patch(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Could not modify guild role positions in guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Could not modify guild role positions in guild with ID #{guild_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -769,11 +784,11 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.patch(url, data, headers)
-    return response if response.status == 200
+    response = patch(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Could not modify guild role with ID #{role_id} in guild with ID #{guild_id}." \
-                 " Response: #{response.body}")
+                 " Response: #{response_error_body(response)}")
     response
   end
 
@@ -790,10 +805,10 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.post(url, data, headers)
-    return unless response.status != 200
+    response = post(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to modify guild MFA level. Response: #{response.body}")
+    @logger.error("Failed to modify guild MFA level. Response: #{response_error_body(response)}")
     response
   end
 
@@ -807,10 +822,10 @@ class DiscordApi
     url = "#{@base_url}/guilds/#{guild_id}/roles/#{role_id}"
     headers = { 'Authorization': @authorization_header }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
-    @logger.error("Failed to delete guild role. Response: #{response.body}")
+    @logger.error("Failed to delete guild role. Response: #{response_error_body(response)}")
     response
   end
 
@@ -828,10 +843,10 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/guilds/#{guild_id}/prune#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild prune count. Response: #{response.body}")
+    @logger.error("Failed to get guild prune count. Response: #{response_error_body(response)}")
     response
   end
 
@@ -861,10 +876,10 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.post(url, data, headers)
-    return response if response.status == 200
+    response = post(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to begin guild prune. Response: #{response.body}")
+    @logger.error("Failed to begin guild prune. Response: #{response_error_body(response)}")
     response
   end
 
@@ -875,10 +890,10 @@ class DiscordApi
   def get_guild_voice_regions(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/regions"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild voice regions. Response: #{response.body}")
+    @logger.error("Failed to get guild voice regions. Response: #{response_error_body(response)}")
     response
   end
 
@@ -889,10 +904,10 @@ class DiscordApi
   def get_guild_invites(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/invites"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild invites. Response: #{response.body}")
+    @logger.error("Failed to get guild invites. Response: #{response_error_body(response)}")
     response
   end
 
@@ -903,15 +918,15 @@ class DiscordApi
   def get_guild_integrations(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/integrations"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    if response.status == 200
+    response = get(url, headers)
+    if response.is_a?(Faraday::Response) && response.status == 200
       if JSON.parse(response.body).length == 50
         @logger.warn('The endpoint returned 50 integrations, which means there could be more integrations not shown.')
       end
       return response
     end
 
-    @logger.error("Failed to get guild integrations. Response: #{response.body}")
+    @logger.error("Failed to get guild integrations. Response: #{response_error_body(response)}")
     response
   end
 
@@ -925,10 +940,10 @@ class DiscordApi
     url = "#{@base_url}/guilds/#{guild_id}/integrations/#{integration_id}"
     headers = { 'Authorization': @authorization_header }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
-    @logger.error("Failed to delete guild integration. Response: #{response.body}")
+    @logger.error("Failed to delete guild integration. Response: #{response_error_body(response)}")
     response
   end
 
@@ -939,10 +954,10 @@ class DiscordApi
   def get_guild_widget_settings(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/widget"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild widget settings. Response: #{response.body}")
+    @logger.error("Failed to get guild widget settings. Response: #{response_error_body(response)}")
     response
   end
 
@@ -962,10 +977,10 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.patch(url, data, headers)
-    return response if response.status == 200
+    response = patch(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to modify guild widget. Response: #{response.body}")
+    @logger.error("Failed to modify guild widget. Response: #{response_error_body(response)}")
     response
   end
 
@@ -976,10 +991,10 @@ class DiscordApi
   def get_guild_widget(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/widget.json"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild widget. Response: #{response.body}")
+    @logger.error("Failed to get guild widget. Response: #{response_error_body(response)}")
     response
   end
 
@@ -990,10 +1005,10 @@ class DiscordApi
   def get_guild_vanity_url(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/vanity-url"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild vanity URL. Response: #{response.body}")
+    @logger.error("Failed to get guild vanity URL. Response: #{response_error_body(response)}")
     response
   end
 
@@ -1027,10 +1042,10 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
 
     url = "#{@base_url}/guilds/#{guild_id}/widget.png#{query_string}"
-    response = DiscordApi.get(url)
-    return unless response.status != 200
+    response = get(url)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild widget image. Response: #{response.body}")
+    @logger.error("Failed to get guild widget image. Response: #{response_error_body(response)}")
     response
   end
 
@@ -1041,10 +1056,10 @@ class DiscordApi
   def get_guild_welcome_screen(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/welcome-screen"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild welcome screen. Response: #{response.body}")
+    @logger.error("Failed to get guild welcome screen. Response: #{response_error_body(response)}")
     response
   end
 
@@ -1074,10 +1089,10 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.patch(url, data, headers)
-    return response if response.status == 200
+    response = patch(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to modify guild welcome screen. Response: #{response.body}")
+    @logger.error("Failed to modify guild welcome screen. Response: #{response_error_body(response)}")
     response
   end
 
@@ -1088,10 +1103,10 @@ class DiscordApi
   def get_guild_onboarding(guild_id)
     url = "#{@base_url}/guilds/#{guild_id}/onboarding"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild onboarding. Response: #{response.body}")
+    @logger.error("Failed to get guild onboarding. Response: #{response_error_body(response)}")
     response
   end
 
@@ -1123,10 +1138,10 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
     headers['X-Audit-Log-Reason'] = audit_reason unless audit_reason.nil?
-    response = DiscordApi.put(url, data, headers)
-    return response if response.status == 200
+    response = put(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to modify guild onboarding. Response: #{response.body}")
+    @logger.error("Failed to modify guild onboarding. Response: #{response_error_body(response)}")
     response
   end
 
@@ -1160,10 +1175,10 @@ class DiscordApi
     url = "#{@base_url}/guilds/#{guild_id}/incident-actions"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.put(url, data, headers)
-    return response if response.status == 200
+    response = put(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to modify guild incident actions. Response: #{response.body}")
+    @logger.error("Failed to modify guild incident actions. Response: #{response_error_body(response)}")
     response
   end
 end

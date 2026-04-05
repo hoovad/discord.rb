@@ -37,10 +37,11 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.post(url, data, headers)
-    return response if response.status == 201 || response.status == 200
+    response = post(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && (response.status == 201 || response.status == 200)
 
-    @logger.error("Failed to create guild application command in guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Failed to create guild application command in guild with ID #{guild_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -112,10 +113,10 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/commands"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.post(url, data, headers)
-    return response if response.status == 201 || response.status == 200
+    response = post(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && (response.status == 201 || response.status == 200)
 
-    @logger.error("Failed to create global application command. Response: #{response.body}")
+    @logger.error("Failed to create global application command. Response: #{response_error_body(response)}")
     response
   end
 
@@ -178,10 +179,11 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/commands/#{command_id}"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.patch(url, data, headers)
-    return response if response.status == 200
+    response = patch(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to edit global application command with ID #{command_id}. Response: #{response.body}")
+    @logger.error("Failed to edit global application command with ID #{command_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -218,10 +220,11 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.patch(url, data, headers)
-    return response if response.status == 200
+    response = patch(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to edit guild application command with ID #{command_id}. Response: #{response.body}")
+    @logger.error("Failed to edit guild application command with ID #{command_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -232,10 +235,11 @@ class DiscordApi
   def delete_global_application_command(command_id)
     url = "#{@base_url}/applications/#{@application_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
-    @logger.error("Failed to delete global application command with ID #{command_id}. Response: #{response.body}")
+    @logger.error("Failed to delete global application command with ID #{command_id}." \
+                  "Response: #{response_error_body(response)}")
     response
   end
 
@@ -247,11 +251,12 @@ class DiscordApi
   def delete_guild_application_command(guild_id, command_id)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.delete(url, headers)
-    return response if response.status == 204
+    response = delete(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 204
 
     @logger.error("Failed to delete guild application command with ID #{command_id} in guild with ID #{guild_id}. " \
-                  "Response: #{response.body}")
+                  "Response: #{response_error_body(response)}")
+    response
   end
 
   # Returns a list of application commands for a guild. Returns 200 OK with an array of command objects.
@@ -265,10 +270,11 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild application commands for guild with ID #{guild_id}. Response: #{response.body}")
+    @logger.error("Failed to get guild application commands for guild with ID #{guild_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -282,10 +288,10 @@ class DiscordApi
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/applications/#{@application_id}/commands#{query_string}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get global application commands. Response: #{response.body}")
+    @logger.error("Failed to get global application commands. Response: #{response_error_body(response)}")
     response
   end
 
@@ -296,10 +302,11 @@ class DiscordApi
   def get_global_application_command(command_id)
     url = "#{@base_url}/applications/#{@application_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get global application command with ID #{command_id}. Response: #{response.body}")
+    @logger.error("Failed to get global application command with ID #{command_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -311,10 +318,11 @@ class DiscordApi
   def get_guild_application_command(guild_id, command_id)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to get guild application command with ID #{command_id}. Response: #{response.body}")
+    @logger.error("Failed to get guild application command with ID #{command_id}." \
+                  " Response: #{response_error_body(response)}")
     response
   end
 
@@ -326,10 +334,10 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/commands"
     data = JSON.generate(commands)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.put(url, data, headers)
-    return response if response.status == 200
+    response = put(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
-    @logger.error("Failed to bulk overwrite global application commands. Response: #{response.body}")
+    @logger.error("Failed to bulk overwrite global application commands. Response: #{response_error_body(response)}")
     response
   end
 
@@ -342,11 +350,11 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands"
     data = JSON.generate(commands)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.put(url, data, headers)
-    return response if response.status == 200
+    response = put(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Failed to bulk overwrite guild application commands in guild with ID #{guild_id}. " \
-                    "Response: #{response.body}")
+                    "Response: #{response_error_body(response)}")
     response
   end
 
@@ -357,11 +365,11 @@ class DiscordApi
   def get_guild_application_command_permissions(guild_id)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/permissions"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Failed to get guild application command permissions for guild with ID #{guild_id}. " \
-                    "Response: #{response.body}")
+                    "Response: #{response_error_body(response)}")
     response
   end
 
@@ -373,11 +381,11 @@ class DiscordApi
   def get_application_command_permissions(guild_id, command_id)
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}/permissions"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
-    return response if response.status == 200
+    response = get(url, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Failed to get appliaction command permissions for command with ID #{command_id} in guild with ID " \
-                    "#{guild_id}. Response: #{response.body}")
+                    "#{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 
@@ -391,11 +399,11 @@ class DiscordApi
     url = "#{@base_url}/applications/#{@application_id}/guilds/#{guild_id}/commands/#{command_id}/permissions"
     data = JSON.generate(permissions)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = DiscordApi.put(url, data, headers)
-    return response if response.status == 200
+    response = put(url, data, headers)
+    return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Failed to edit application command permissions for command with ID #{command_id} in guild with ID " \
-                    "#{guild_id}. Response: #{response.body}")
+                    "#{guild_id}. Response: #{response_error_body(response)}")
     response
   end
 end

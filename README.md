@@ -5,13 +5,24 @@
 ![project status: active](https://img.shields.io/badge/project_status-active-green)
 [![main](https://github.com/hoovad/discord.rb/actions/workflows/main.yml/badge.svg)](https://github.com/hoovad/discord.rb/actions/workflows/main.yml)
 
-[Changelog](CHANGELOG.md) | [Documentation](https://www.rubydoc.info/gems/disrb/)
+[Changelog](CHANGELOG.md) | [Documentation](https://www.rubydoc.info/gems/disrb/) | [Contributing](CONTRIBUTING.md)
+
+> [!IMPORTANT]
+> This is project is still in early development. Expect changes that might break your code at any time. If your code suddenly doesn't work but it did on a previous version, check the [Changelog](CHANGELOG.md) for any breaking changes.
 
 W.I.P. Discord API wrapper written in Ruby for fun.
 
-The test.rb file creates two commands "test" and "test2", that return "Hi" and "Hello World!" respectively, sets the bot's current activity to 'Watching if i work', and sets the presence to online since the program was started provided you provide the required data in `env.rb.template` and rename it to `env.rb`.
+> [!NOTE]
+> This is not a full-featured Discord API handler. This gem lets you interact with the Discord API directly without all the baggage. If you want to make a bot extremely easily, this is not what you are looking for.
 
-!DISCLAIMER! This is project is in development. Expect changes that might break your code at any time.
+If you wanted to use this project, but found that something is missing, doesn't work, don't be afraid to open an issue! Read the [Contributing](CONTRIBUTING.md) page.
+
+## Demonstration
+
+The test.rb file creates two commands "test" and "test2", that return "Hi" and "Hello World!" respectively, sets the bot's current activity to 'Watching if i work', and sets the presence to online since the program was started.
+
+> [!NOTE]
+> You will need to fill out the required data in `env.rb.template` and rename it to `env.rb` before running `test.rb`.
 
 ## How to use this project
 
@@ -19,9 +30,10 @@ The documentation will contain information about the functions implemented in th
 
 Most functions in this library return a `Faraday::Response` object. Check the [Faraday documentation](https://www.rubydoc.info/github/lostisland/faraday) for info on how to use that object. 
 
-If you want to get the contents of the response, use the `body` instance method (example: `[Faraday::Response object here].body`). The contents will most likely be JSON. To convert it to a Ruby object, use `JSON.parse([Faraday::Response object here].body)`.
+If you want to get the contents of the response, use the `body` instance method (example: `[Faraday::Response object here].body`). The contents will most likely be JSON. To convert it to a Ruby object, use `JSON.parse([Faraday::Response object here].body)` (with `require 'json'` of course).
 
-When reading the documentation, there most likely will be a link to the relevant Discord Developer Documentation page. Please read that page as well, it will contain information that may help you.
+> [!TIP]
+> When reading the documentation, there most likely will be a link to the relevant Discord Developer Documentation page. Please read that page as well, it will contain information that may help you.
 
 ## Roadmap
 - [x] Indev release (v0.1.0)
@@ -46,5 +58,5 @@ When reading the documentation, there most likely will be a link to the relevant
     - [ ] Voice support
     - [ ] Add parameter validation
 - [ ] Stable release (v1.0.0)
-    - [ ] Class-ification update (instead of returning the raw HTTP response, make them into classes to make responses easier to use)
+    - [ ] Return classes instead of `Faraday::Response` objects
     - [ ] Bugfixes, consistency and improvements
