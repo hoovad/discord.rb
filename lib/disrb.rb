@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'uri'
 require 'async'
 require 'async/http/endpoint'
 require 'async/websocket/client'
@@ -50,7 +51,6 @@ class Snowflake
 end
 
 # Class that contains functions that allow interacting with the Discord API.
-# @version 0.1.4
 class DiscordApi
   # @!attribute [r] base_url
   #   @return [String] the base URL that is used to access the Discord API. ex: "https://discord.com/api/v10"
@@ -126,7 +126,7 @@ class DiscordApi
     end
     url = "#{@base_url}/applications/@me"
     headers = { 'Authorization': @authorization_header }
-    response = DiscordApi.get(url, headers)
+    response = get(url, headers)
     if response.is_a?(Faraday::Response) && response.status == 200
       @application_id = JSON.parse(response.body)['id']
     else
@@ -253,7 +253,7 @@ class DiscordApi
       loop do
         recieved_ready = false
         url = if rescue_connection.nil?
-                response = DiscordApi.get("#{@base_url}/gateway")
+                response = get("#{@base_url}/gateway")
                 if response.is_a?(Faraday::Response) && response.status == 200
                   "#{JSON.parse(response.body)['url']}/?v=#{@api_version}&encoding=json"
                 else
@@ -369,15 +369,21 @@ class DiscordApi
   # @param interaction [Hash] The interaction payload received from the Gateway.
   # @param response [Hash] The interaction response payload.
   # @param with_response [TrueClass, FalseClass] Whether to request the created message in the response.
+  # @param files [Array] An array of arrays, each inner-array first has its filename (index 0),
+  #   raw file data as a string (index 1), and then the MIME type of the file (index 2).
   # @return [Faraday::Response] The response from the Discord API.
-  def respond_interaction(interaction, response, with_response: false)
+  def respond_interaction(interaction, response, with_response: false, files: nil)
     query_string_hash = {}
     query_string_hash[:with_response] = with_response
     query_string = DiscordApi.handle_query_strings(query_string_hash)
     url = "#{@base_url}/interactions/#{interaction[:d][:id]}/#{interaction[:d][:token]}/callback#{query_string}"
     data = JSON.generate(response)
-    headers = { 'content-type': 'application/json' }
-    response = DiscordApi.post(url, data, headers)
+    if files
+      response = file_upload(url, files, payload_json: data)
+    else
+      headers = { 'Content-Type' => 'application/json' }
+      response = post(url, data, headers)
+    end
     return response if response.is_a?(Faraday::Response) &&
                        ((response.status == 204 && !with_response) || (response.status == 200 && with_response))
 
@@ -508,18 +514,37 @@ class DiscordApi
     'Empty'
   end
 
+  # Parses a full URL and returns connection host and request path.
+  # @param url [String] Full URL.
+  # @param method_name [String] HTTP method name used for logging context.
+  # @return [Hash, nil] { host:, path: } or nil if URL is invalid.
+  def parse_request_url(url, method_name)
+    begin
+      uri = URI.parse(url.to_s)
+    rescue URI::InvalidURIError
+      @logger.error("Empty/invalid URL provided: #{url}. Cannot perform #{method_name} request.")
+      return nil
+    end
+    if uri.scheme.nil? || uri.host.nil?
+      @logger.error("Empty/invalid URL provided: #{url}. Cannot perform #{method_name} request.")
+      return nil
+    end
+
+    host = "#{uri.scheme}://#{uri.host}"
+    host = "#{host}:#{uri.port}" if uri.port && uri.port != uri.default_port
+    { host: host, path: uri.request_uri }
+  end
+
   # Performs an HTTP GET request using Faraday.
   # @param url [String] Full URL including scheme and host; path may be included.
   # @param headers [Hash, nil] Optional request headers.
   # @return [Faraday::Response, nil] The Faraday response object, or nil if an error was encountered.
   def get(url, headers = nil)
-    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
-    if split_url.empty?
-      @logger.error("Empty/invalid URL provided: #{url}. Cannot perform GET request.")
-      return
-    end
-    host = split_url[0]
-    path = split_url[1] if split_url[1]
+    parsed_url = parse_request_url(url, 'GET')
+    return if parsed_url.nil?
+
+    host = parsed_url[:host]
+    path = parsed_url[:path]
     if headers.is_a?(Hash)
       headers['User-Agent'] = @user_agent
     elsif headers.nil?
@@ -529,11 +554,7 @@ class DiscordApi
       headers = { 'User-Agent' => @user_agent }
     end
     conn = Faraday.new(url: host, headers: headers)
-    if path
-      conn.get(path)
-    else
-      conn.get
-    end
+    conn.get(path)
   end
 
   # Performs an HTTP DELETE request using Faraday.
@@ -541,13 +562,11 @@ class DiscordApi
   # @param headers [Hash, nil] Optional request headers.
   # @return [Faraday::Response, nil] The Faraday response object, or nil if an error was encountered.
   def delete(url, headers = nil)
-    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
-    if split_url.empty?
-      @logger.error("Empty/invalid URL provided: #{url}. Cannot perform DELETE request.")
-      return
-    end
-    host = split_url[0]
-    path = split_url[1] if split_url[1]
+    parsed_url = parse_request_url(url, 'DELETE')
+    return if parsed_url.nil?
+
+    host = parsed_url[:host]
+    path = parsed_url[:path]
     if headers.is_a?(Hash)
       headers['User-Agent'] = @user_agent
     elsif headers.nil?
@@ -557,11 +576,7 @@ class DiscordApi
       headers = { 'User-Agent' => @user_agent }
     end
     conn = Faraday.new(url: host, headers: headers)
-    if path
-      conn.delete(path)
-    else
-      conn.delete
-    end
+    conn.delete(path)
   end
 
   # Performs an HTTP POST request using Faraday.
@@ -570,13 +585,11 @@ class DiscordApi
   # @param headers [Hash, nil] Optional request headers.
   # @return [Faraday::Response, nil] The Faraday response object, or nil if an error was encountered.
   def post(url, data, headers = nil)
-    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
-    if split_url.empty?
-      @logger.error("Empty/invalid URL provided: #{url}. Cannot perform POST request.")
-      return
-    end
-    host = split_url[0]
-    path = split_url[1] if split_url[1]
+    parsed_url = parse_request_url(url, 'POST')
+    return if parsed_url.nil?
+
+    host = parsed_url[:host]
+    path = parsed_url[:path]
     if headers.is_a?(Hash)
       headers['User-Agent'] = @user_agent
     elsif headers.nil?
@@ -586,11 +599,7 @@ class DiscordApi
       headers = { 'User-Agent' => @user_agent }
     end
     conn = Faraday.new(url: host, headers: headers)
-    if path
-      conn.post(path, data)
-    else
-      conn.post('', data)
-    end
+    conn.post(path, data)
   end
 
   # Performs an HTTP PATCH request using Faraday.
@@ -599,13 +608,11 @@ class DiscordApi
   # @param headers [Hash, nil] Optional request headers.
   # @return [Faraday::Response, nil] The Faraday response object, or nil if an error was encountered.
   def patch(url, data, headers = nil)
-    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
-    if split_url.empty?
-      @logger.error("Empty/invalid URL provided: #{url}. Cannot perform PATCH request.")
-      return
-    end
-    host = split_url[0]
-    path = split_url[1] if split_url[1]
+    parsed_url = parse_request_url(url, 'PATCH')
+    return if parsed_url.nil?
+
+    host = parsed_url[:host]
+    path = parsed_url[:path]
     if headers.is_a?(Hash)
       headers['User-Agent'] = @user_agent
     elsif headers.nil?
@@ -615,11 +622,7 @@ class DiscordApi
       headers = { 'User-Agent' => @user_agent }
     end
     conn = Faraday.new(url: host, headers: headers)
-    if path
-      conn.patch(path, data)
-    else
-      conn.patch('', data)
-    end
+    conn.patch(path, data)
   end
 
   # Performs an HTTP PUT request using Faraday.
@@ -628,13 +631,11 @@ class DiscordApi
   # @param headers [Hash, nil] Optional request headers.
   # @return [Faraday::Response, nil] The Faraday response object, or nil if an error was encountered.
   def put(url, data, headers = nil)
-    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
-    if split_url.empty?
-      @logger.error("Empty/invalid URL provided: #{url}. Cannot perform PUT request.")
-      return
-    end
-    host = split_url[0]
-    path = split_url[1] if split_url[1]
+    parsed_url = parse_request_url(url, 'PUT')
+    return if parsed_url.nil?
+
+    host = parsed_url[:host]
+    path = parsed_url[:path]
     if headers.is_a?(Hash)
       headers['User-Agent'] = @user_agent
     elsif headers.nil?
@@ -644,14 +645,10 @@ class DiscordApi
       headers = { 'User-Agent' => @user_agent }
     end
     conn = Faraday.new(url: host, headers: headers)
-    if path
-      conn.put(path, data)
-    else
-      conn.put('', data)
-    end
+    conn.put(path, data)
   end
 
-  # Sends a HTTP POST request to the specified URL, containing multipart/form-data data structured
+  # Sends a HTTP POST/PATCH request to the specified URL, containing multipart/form-data data structured
   #   according to Discord documentation.
   # See https://docs.discord.com/developers/reference#uploading-files
   # @param url [String] Full URL including scheme and host; path may be included.
@@ -660,15 +657,14 @@ class DiscordApi
   # @param files [Array] An array of arrays, each inner-array first has its filename (index 0),
   #   raw file data as a string (index 1), and then the MIME type of the file (index 2).
   # @param headers [Hash, nil] Optional request headers.
+  # @param request_type [Symbol, nil] Specify whether to make a POST (:post) or PATCH (:patch) request. POST by default.
   # @return [Faraday::Response, nil] The Faraday response object, or nil if an error was encountered.
-  def file_upload(url, files, payload_json: nil, headers: nil)
-    split_url = url.split(%r{(http[^/]+)(/.*)}).reject(&:empty?)
-    if split_url.empty?
-      @logger.error("Empty/invalid URL provided: #{url}. Cannot perform Discord multipart/form-data POST request.")
-      return
-    end
-    host = split_url[0]
-    path = split_url[1] if split_url[1]
+  def file_upload(url, files, payload_json: nil, headers: nil, request_type: :post)
+    parsed_url = parse_request_url(url, 'multipart/form-data')
+    return if parsed_url.nil?
+
+    host = parsed_url[:host]
+    path = parsed_url[:path]
     if headers.is_a?(Hash)
       headers['User-Agent'] = @user_agent
     elsif headers.nil?
@@ -677,35 +673,28 @@ class DiscordApi
       @logger.warn('Invalid headers parameter. It will be discarded.')
       headers = { 'User-Agent' => @user_agent }
     end
-    conn = Faraday.new(url: host, headers: headers, request: :multipart, content_type: 'multipart/form-data')
-    payload = {}
-    # FilePart expects File/IO objects as the first argument.
-    # However, since the function is being given raw data instead of File/IO objects, we should be using ParamPart
-    # But, ParamPart doesn't let us use a customized Content-Disposition, which is what we need
-    # So we will just have to wrap the raw data in an IO class with StringIO
-    if payload_json
-      payload[:payload_json] = Faraday::Multipart::FilePart.new(
-        StringIO.new(payload_json),
-        'application/json',
-        nil,
-        'Content-Disposition' => 'form-data; name="payload_json"'
-      )
+    conn = Faraday.new(url: host, headers: headers) do |faraday|
+      faraday.request :multipart
     end
+    payload = {}
+    payload['payload_json'] = Faraday::Multipart::ParamPart.new(payload_json, 'application/json') if payload_json
     files.each_with_index do |(filename, raw_bytes, mime_type), i|
-      payload[:"file_#{i}"] = Faraday::Multipart::FilePart.new(
+      payload["files[#{i}]"] = Faraday::Multipart::FilePart.new(
         StringIO.new(raw_bytes),
         mime_type,
-        filename,
-        'Content-Disposition' => "form-data; name=\"files[#{i}]\"; filename=\"#{filename}\""
+        filename
       )
     end
     if payload.empty?
       @logger.warn("Payload empty, not sending Discord multipart/form-data POST request to #{url}.")
       nil
-    elsif path
-      conn.post(path, payload)
     else
-      conn.post('', payload)
+      case request_type
+      when :post
+        conn.post(path, payload)
+      when :patch
+        conn.patch(path, payload)
+      end
     end
   end
 

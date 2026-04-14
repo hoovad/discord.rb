@@ -115,7 +115,7 @@ class DiscordApi
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header }
     if files
-      response = file_upload(url, files, data, headers)
+      response = file_upload(url, files, payload_json: data, headers: headers)
     else
       headers['Content-Type'] = 'application/json'
       response = post(url, data, headers)
@@ -272,7 +272,7 @@ class DiscordApi
                    components: nil, files: nil, attachments: nil)
     if args[2..].all?(&:nil?)
       @logger.warn("No modifications provided for message with ID #{message_id} in channel with ID #{channel_id}. " \
-                    'Only modifying Skipping function.')
+                    'Skipping function.')
       return
     end
     output = {}
@@ -289,7 +289,12 @@ class DiscordApi
     url = "#{@base_url}/channels/#{channel_id}/messages/#{message_id}"
     data = JSON.generate(output)
     headers = { 'Authorization': @authorization_header, 'Content-Type': 'application/json' }
-    response = patch(url, data, headers)
+    if files
+      response = file_upload(url, files, headers: headers, payload_json: data, request_type: :patch)
+    else
+      headers['Content-Type'] = 'application/json'
+      response = patch(url, data, headers)
+    end
     return response if response.is_a?(Faraday::Response) && response.status == 200
 
     @logger.error("Failed to edit message with ID #{message_id} in channel with ID #{channel_id}. " \

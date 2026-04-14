@@ -19,7 +19,7 @@ If you wanted to use this project, but found that something is missing, doesn't 
 
 ## Demonstration
 
-The test.rb file creates two commands "test" and "test2", that return "Hi" and "Hello World!" respectively, sets the bot's current activity to 'Watching if i work', and sets the presence to online since the program was started.
+The test.rb file creates three commands "test", "test2" and "file", that return "Hi", "Hello World!" and then "Hello World!" plus a file called "file.txt" with content "Hello World in a file!" respectively, sets the bot's current activity to 'Watching if i work', and sets the presence to online since the program was started. If the bot itself has been mentioned, it replies to that message with 'pong'.
 
 > [!NOTE]
 > You will need to fill out the required data in `env.rb.template` and rename it to `env.rb` before running `test.rb`.

@@ -1,3 +1,17 @@
+# v0.1.4.1 (2026-04-14)
+
+- File uploading was just not implemented in `edit_message`
+- Fix file uploading function being used incorrectly in `create_message`
+- Add new testing function in `test.rb`
+- Fix HTTP handlers getting called incorrectly sometimes
+- Add file uploading support to `respond_interaction` (you will need to specify `attachments` in the response yourself for now)
+- Add uploading files to Discord also via PATCH requests
+- Fix Faraday request types being set incorrectly
+- Fix payload_json being added to multipart form data incorrectly
+- Add info on how to create a new release in `CONTRIBUTING.md`
+- Fix some typos and minor mistakes
+- Add `Gemfile.lock` and remove it from `.gitignore`
+
 # v0.1.4 (2026-04-05)
 
 - Add support for file uploading

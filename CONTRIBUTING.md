@@ -19,3 +19,10 @@ If you want to contribute to this project (god bless your soul), welcome! Please
 - Make sure that your pull requests want to merge into the `dev` branch
 - Make sure that `Allow edits by maintainers` is enabled!
 - If applicable, adapt the documentation to your changes.
+
+# Publishing a new release
+- Update `lib/version.rb`
+- Update roadmap in `README.md`
+- Update `CHANGELOG.md`
+
+Then create a commit and a tag on that commit, and push both to origin.
